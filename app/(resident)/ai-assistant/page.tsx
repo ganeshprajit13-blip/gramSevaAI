@@ -98,8 +98,9 @@ export default function AIAssistantPage() {
   }
 
   return (
-    <div className="space-y-6 pt-8 lg:pt-0">
-      <div>
+    <div className="space-y-6 pt-2 lg:pt-0">
+      <div className="page-shell space-y-2">
+        <div className="eyebrow">AI Services</div>
         <h1 className="page-title flex items-center gap-2">
           <Bot className="w-7 h-7 text-primary" /> AI Assistant
         </h1>
@@ -107,7 +108,7 @@ export default function AIAssistantPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 p-1 bg-secondary rounded-xl w-fit">
+      <div className="flex gap-2 p-1 rounded-[20px] border border-slate-200/80 bg-white/80 p-1 shadow-sm w-fit">
         {[
           { id: 'guidance', label: 'Citizen Guidance', icon: Bot },
           { id: 'recommend', label: 'Scheme Recommender', icon: Sparkles },
@@ -117,7 +118,7 @@ export default function AIAssistantPage() {
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.id
-                ? 'bg-card text-foreground shadow-sm'
+                ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -129,7 +130,7 @@ export default function AIAssistantPage() {
 
       <AnimatePresence mode="wait">
         {activeTab === 'guidance' ? (
-          <motion.div key="guidance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
+          <motion.div key="guidance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="page-shell flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
             {/* Messages */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
               {messages.length === 0 && (
@@ -146,7 +147,7 @@ export default function AIAssistantPage() {
                       <button
                         key={prompt}
                         onClick={() => setInput(prompt)}
-                        className="flex items-start gap-2 p-3 rounded-xl border border-border hover:border-primary/50 hover:bg-primary/5 text-left text-sm transition-all"
+                        className="flex items-start gap-2 p-3 rounded-[18px] border border-border hover:border-primary/50 hover:bg-primary/5 text-left text-sm transition-all"
                       >
                         <Lightbulb className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
                         {prompt}
@@ -187,12 +188,12 @@ export default function AIAssistantPage() {
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                 placeholder="Ask about any government scheme or benefit…"
                 disabled={streaming}
-                className="flex-1 px-4 py-3 rounded-xl bg-secondary border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all disabled:opacity-50"
+                className="field-shell flex-1 px-4 py-3 disabled:opacity-50"
               />
               <button
                 onClick={sendMessage}
                 disabled={streaming || !input.trim()}
-                className="px-4 py-3 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="btn-primary px-4 py-3 rounded-[18px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -200,7 +201,7 @@ export default function AIAssistantPage() {
           </motion.div>
         ) : (
           <motion.div key="recommend" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-            <div className="glass-card p-6">
+            <div className="glass-card p-6 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-white" />
@@ -213,7 +214,7 @@ export default function AIAssistantPage() {
               <button
                 onClick={getRecommendations}
                 disabled={loadingRec}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 text-sm font-medium"
+                className="btn-primary px-5 py-2.5 rounded-[18px] disabled:opacity-50"
               >
                 {loadingRec ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {loadingRec ? 'Analysing your profile…' : 'Get My Recommendations'}

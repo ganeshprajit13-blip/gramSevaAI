@@ -58,16 +58,17 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6 pt-8 lg:pt-0 max-w-4xl mx-auto pb-16">
-      <div>
+    <div className="space-y-6 pt-2 lg:pt-0 max-w-5xl mx-auto pb-16">
+      <div className="page-shell space-y-2">
+        <div className="eyebrow">Resident Profile</div>
         <h1 className="page-title">My Profile</h1>
         <p className="page-subtitle">Keep your information updated for the best scheme recommendations</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-1 space-y-6">
-          <div className="glass-card p-6 text-center">
-            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 border-4 border-background shadow-xl">
+          <div className="glass-card p-6 text-center shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/15 to-emerald-500/10 flex items-center justify-center mx-auto mb-4 border-4 border-background shadow-xl">
               <User className="w-10 h-10 text-primary" />
             </div>
             <h3 className="font-bold text-lg">{profile?.name || 'Resident'}</h3>
@@ -80,7 +81,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="md:col-span-2">
-          <form onSubmit={handleSubmit} className="glass-card p-6 sm:p-8">
+          <form onSubmit={handleSubmit} className="glass-card p-6 sm:p-8 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
             <h3 className="text-lg font-bold mb-6 border-b border-border pb-2">Personal Information</h3>
             
             <div className="grid sm:grid-cols-2 gap-5 mb-8">
@@ -88,22 +89,22 @@ export default function ProfilePage() {
                 <label className="text-sm font-medium">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full bg-background border border-input rounded-xl pl-10 pr-4 py-2.5" />
+                  <input aria-label="Full name" type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="field-shell !pl-10 pr-4" />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Age</label>
-                <input type="number" required value={formData.age} onChange={(e) => setFormData({ ...formData, age: e.target.value })} className="w-full bg-background border border-input rounded-xl px-4 py-2.5" />
+                <input aria-label="Age" type="number" required value={formData.age} onChange={(e) => setFormData({ ...formData, age: e.target.value })} className="field-shell" />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Gender</label>
-                <select value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })} className="w-full bg-background border border-input rounded-xl px-4 py-2.5">
+                <select aria-label="Gender" value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })} className="field-shell">
                   {['Male', 'Female', 'Other', 'Prefer not to say'].map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Community</label>
-                <select value={formData.community} onChange={(e) => setFormData({ ...formData, community: e.target.value as any })} className="w-full bg-background border border-input rounded-xl px-4 py-2.5">
+                <select aria-label="Community" value={formData.community} onChange={(e) => setFormData({ ...formData, community: e.target.value as any })} className="field-shell">
                   {['General', 'OBC', 'SC', 'ST', 'Other'].map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
@@ -115,23 +116,23 @@ export default function ProfilePage() {
                 <label className="text-sm font-medium">District</label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type="text" required value={formData.district} onChange={(e) => setFormData({ ...formData, district: e.target.value })} className="w-full bg-background border border-input rounded-xl pl-10 pr-4 py-2.5" />
+                  <input aria-label="District" type="text" required value={formData.district} onChange={(e) => setFormData({ ...formData, district: e.target.value })} className="field-shell !pl-10 pr-4" />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Village / Town</label>
-                <input type="text" required value={formData.village} onChange={(e) => setFormData({ ...formData, village: e.target.value })} className="w-full bg-background border border-input rounded-xl px-4 py-2.5" />
+                <input aria-label="Village or town" type="text" required value={formData.village} onChange={(e) => setFormData({ ...formData, village: e.target.value })} className="field-shell" />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Occupation</label>
                 <div className="relative">
                   <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type="text" required value={formData.occupation} onChange={(e) => setFormData({ ...formData, occupation: e.target.value })} className="w-full bg-background border border-input rounded-xl pl-10 pr-4 py-2.5" />
+                  <input aria-label="Occupation" type="text" required value={formData.occupation} onChange={(e) => setFormData({ ...formData, occupation: e.target.value })} className="field-shell !pl-10 pr-4" />
                 </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Annual Income (₹)</label>
-                <input type="number" required value={formData.annual_income} onChange={(e) => setFormData({ ...formData, annual_income: e.target.value })} className="w-full bg-background border border-input rounded-xl px-4 py-2.5" />
+                <input aria-label="Annual income" type="number" required value={formData.annual_income} onChange={(e) => setFormData({ ...formData, annual_income: e.target.value })} className="field-shell" />
               </div>
             </div>
 
@@ -141,7 +142,7 @@ export default function ProfilePage() {
                 <label className="text-sm font-medium">Education Level</label>
                 <div className="relative">
                   <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <select value={formData.education} onChange={(e) => setFormData({ ...formData, education: e.target.value as any })} className="w-full bg-background border border-input rounded-xl pl-10 pr-4 py-2.5 appearance-none">
+                  <select aria-label="Education level" value={formData.education} onChange={(e) => setFormData({ ...formData, education: e.target.value as any })} className="field-shell !pl-10 pr-4 appearance-none">
                     {['No Formal Education', 'Primary', 'Secondary', 'Higher Secondary', 'Diploma', 'Graduate', 'Post Graduate', 'Doctorate'].map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </div>
@@ -150,7 +151,7 @@ export default function ProfilePage() {
                 <label className="text-sm font-medium">Marital Status</label>
                 <div className="relative">
                   <Heart className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <select value={formData.marital_status} onChange={(e) => setFormData({ ...formData, marital_status: e.target.value as any })} className="w-full bg-background border border-input rounded-xl pl-10 pr-4 py-2.5 appearance-none">
+                  <select aria-label="Marital status" value={formData.marital_status} onChange={(e) => setFormData({ ...formData, marital_status: e.target.value as any })} className="field-shell !pl-10 pr-4 appearance-none">
                     {['Single', 'Married', 'Divorced', 'Widowed'].map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </div>
@@ -161,7 +162,7 @@ export default function ProfilePage() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="btn-primary px-6 py-2.5 rounded-[18px]"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                 Save Changes

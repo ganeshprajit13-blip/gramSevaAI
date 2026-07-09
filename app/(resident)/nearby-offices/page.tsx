@@ -50,7 +50,8 @@ export default function NearbyOfficesPage() {
     setSelectedOfficeIndex(index)
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBLzq_EZtnaAL736DOtz7XSkkfuSLUaPn4'
+
 
   return (
     <div className="space-y-6 pt-8 lg:pt-0 max-w-6xl mx-auto h-[calc(100vh-120px)] flex flex-col">

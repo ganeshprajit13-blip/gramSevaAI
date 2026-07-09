@@ -112,30 +112,31 @@ export default function SchemesPage() {
 
   return (
     <div className="space-y-6 pt-8 lg:pt-0">
-      <div>
+      <div className="page-shell space-y-2">
+        <div className="eyebrow">Citizen Services</div>
         <h1 className="page-title">Browse Schemes</h1>
         <p className="page-subtitle">All published government schemes — search, filter, and apply</p>
       </div>
 
       {/* Search + filter bar */}
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search schemes by name, keyword, or benefit…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-secondary border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            className="field-shell w-full !pl-9 !pr-10 py-3"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+            <button onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+          className={`btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-[18px] text-sm font-semibold transition-all ${
             showFilters || selectedCategory ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-secondary border-border text-foreground'
           }`}
         >
@@ -147,7 +148,7 @@ export default function SchemesPage() {
 
       {/* Category filter pills */}
       {showFilters && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap gap-2">
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap gap-2 rounded-[20px] border border-slate-200/80 bg-white/70 p-3 shadow-sm">
           <button
             onClick={() => setSelectedCategory('')}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
@@ -176,8 +177,8 @@ export default function SchemesPage() {
           {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : schemes.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="text-5xl mb-4">🔍</div>
+        <div className="page-shell text-center py-16">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50 text-3xl shadow-sm">🔍</div>
           <h3 className="font-bold text-lg mb-2">No schemes found</h3>
           <p className="text-muted-foreground text-sm mb-4">
             {search || selectedCategory
