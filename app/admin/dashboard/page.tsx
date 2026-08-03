@@ -18,6 +18,9 @@ import {
 } from 'recharts'
 
 import { toast } from 'sonner'
+import { getStoredResidents, computeCentralMetrics } from '@/lib/resident-store'
+import { getStoredAnnouncements, saveAnnouncement, deleteAnnouncement, type AnnouncementRecord } from '@/lib/announcement-store'
+import { getStoredComplaints, updateComplaintStatus, type ComplaintRecord } from '@/lib/complaint-store'
 
 // Static mockup datasets for admin analytics
 const monthlyApplicationsData = [
@@ -100,8 +103,9 @@ export default function AdminDashboard() {
   const [newSchemeElig, setNewSchemeElig] = useState('')
 
   const [showAddAnnounce, setShowAddAnnounce] = useState(false)
-  const [noticeType, setNoticeType] = useState('Village Notice')
+  const [noticeType, setNoticeType] = useState('scheme')
   const [noticeContent, setNoticeContent] = useState('')
+  const [uploadedImageDataUrl, setUploadedImageDataUrl] = useState<string>('')
 
   // AI Configuration state variables
   const [aiProvider, setAiProvider] = useState('groq')
@@ -253,12 +257,15 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ── DASHBOARD SUB-MENU ROUTING NAVIGATION ── */}
       <div className="flex overflow-x-auto gap-1 bg-secondary/80 p-1.5 rounded-2xl border border-border/80 scrollbar-none">
         <button onClick={() => navigateToTab('overview')} className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer ${activeTab === 'overview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Overview</button>
+        <Link href="/admin/women-empowerment" className="px-4 py-2 text-xs font-black rounded-xl whitespace-nowrap transition-all cursor-pointer bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-sm hover:shadow-md flex items-center gap-1.5">
+          <span>💖 Women Empowerment &amp; Demographics</span>
+          <span className="bg-white/20 text-[9px] px-1.5 py-0.5 rounded-md uppercase font-extrabold">NEW</span>
+        </Link>
         <button onClick={() => navigateToTab('citizens')} className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer ${activeTab === 'citizens' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Citizens</button>
         <button onClick={() => navigateToTab('schemes')} className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer ${activeTab === 'schemes' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Schemes</button>
-        <button onClick={() => navigateToTab('certificates')} className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer ${activeTab === 'certificates' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Certificates</button>
+        
         <button onClick={() => navigateToTab('complaints')} className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer ${activeTab === 'complaints' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Complaints</button>
         <button onClick={() => navigateToTab('announcements')} className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer ${activeTab === 'announcements' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Announcements</button>
         <button onClick={() => navigateToTab('ai-config')} className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer ${activeTab === 'ai-config' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>AI Settings</button>
@@ -279,28 +286,38 @@ export default function AdminDashboard() {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               {/* Statistical Cards Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="glass-card p-4 border-l-4 border-l-blue-500 shadow-xs">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Total Citizens</span>
-                  <p className="text-xl font-black mt-1">1,080</p>
-                </div>
-                <div className="glass-card p-4 border-l-4 border-l-emerald-500 shadow-xs">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Active Schemes</span>
-                  <p className="text-xl font-black mt-1">92</p>
-                </div>
-                <div className="glass-card p-4 border-l-4 border-l-orange-500 shadow-xs">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Pending Applications</span>
-                  <p className="text-xl font-black mt-1">48</p>
-                </div>
-                <div className="glass-card p-4 border-l-4 border-l-red-500 shadow-xs">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Open Complaints</span>
-                  <p className="text-xl font-black mt-1">12</p>
-                </div>
-                <div className="glass-card p-4 border-l-4 border-l-purple-500 shadow-xs">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Certificates Issued</span>
-                  <p className="text-xl font-black mt-1">450</p>
-                </div>
-              </div>
+              {(() => {
+                const liveMetrics = computeCentralMetrics(false)
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="glass-card p-4 border-l-4 border-l-blue-500 shadow-xs">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Total Citizens</span>
+                      <p className="text-xl font-black mt-1">{liveMetrics.totalPopulation.toLocaleString()}</p>
+                      <span className="text-[9px] text-emerald-600 font-semibold">✓ Live Data</span>
+                    </div>
+                    <div className="glass-card p-4 border-l-4 border-l-pink-500 shadow-xs">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Women Registered</span>
+                      <p className="text-xl font-black mt-1">{liveMetrics.womenRegistered.toLocaleString()}</p>
+                      <span className="text-[9px] text-pink-600 font-semibold">Live Store</span>
+                    </div>
+                    <div className="glass-card p-4 border-l-4 border-l-emerald-500 shadow-xs">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Scheme Eligible</span>
+                      <p className="text-xl font-black mt-1">{liveMetrics.womenEligible.toLocaleString()}</p>
+                      <span className="text-[9px] text-emerald-600 font-semibold">Auto Calculated</span>
+                    </div>
+                    <div className="glass-card p-4 border-l-4 border-l-orange-500 shadow-xs">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Pending Verifications</span>
+                      <p className="text-xl font-black mt-1">{liveMetrics.pendingVerifications}</p>
+                      <span className="text-[9px] text-orange-600 font-semibold">Awaiting BDO</span>
+                    </div>
+                    <div className="glass-card p-4 border-l-4 border-l-purple-500 shadow-xs">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Verified Citizens</span>
+                      <p className="text-xl font-black mt-1">{liveMetrics.verifiedCount}</p>
+                      <span className="text-[9px] text-purple-600 font-semibold">Documents Verified</span>
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Charts grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -526,148 +543,302 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* 4. CERTIFICATES VERIFICATION TAB */}
-          {activeTab === 'certificates' && (
-            <div className="space-y-4 glass-card p-6">
-              <div>
-                <h3 className="font-bold text-sm">Pending Citizen Document Verifications</h3>
-                <p className="text-[10px] text-muted-foreground">Inspect submitted proofs, audit land titles and approve certificate issues</p>
-              </div>
-
-              <div className="space-y-3 mt-4">
-                {certificates.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-6 text-center">All pending certificate applications verified.</p>
-                ) : (
-                  certificates.map((cert) => (
-                    <div key={cert.id} className="p-4 rounded-2xl bg-secondary/40 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <span className="text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded-full uppercase">{cert.type}</span>
-                        <h4 className="font-bold text-xs">{cert.citizen}</h4>
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <Upload className="w-3 h-3" />
-                          <span>Uploaded Document: <span className="font-mono underline text-primary">{cert.docName}</span></span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button onClick={() => handleCertificateApprove(cert.id, 'Approve')} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer">
-                          <UserCheck className="w-3.5 h-3.5" /> Approve Issue
-                        </button>
-                        <button onClick={() => handleCertificateApprove(cert.id, 'Reject')} className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer">
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 5. COMPLAINTS MANAGEMENT TAB */}
+          {/* 4. COMPLAINTS MANAGEMENT TAB — Live Store */}
           {activeTab === 'complaints' && (
-            <div className="space-y-4 glass-card p-6">
-              <div>
-                <h3 className="font-bold text-sm">Village Complaints Resolution Center</h3>
-                <p className="text-[10px] text-muted-foreground">Audit open complaints and assign utility workers for resolutions</p>
+            <div className="space-y-6 glass-card p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+                <div>
+                  <h3 className="font-extrabold text-base text-foreground">Village Grievance & Complaints Resolution Desk</h3>
+                  <p className="text-xs text-muted-foreground">Inspect submitted citizen grievances, update resolution status, and send officer remarks directly to the villager</p>
+                </div>
+                <span className="text-[10px] font-black uppercase bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 rounded-full">
+                  Live Grievance Store
+                </span>
               </div>
 
-              <div className="space-y-3 mt-4">
-                {complaints.map((cmp) => (
-                  <div key={cmp.id} className="p-4 rounded-2xl bg-secondary/40 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs">{cmp.id}</span>
-                        <span className={`badge ${
-                          cmp.priority === 'High' ? 'badge-status-high' : 'badge-status-medium'
-                        }`}>
-                          {cmp.priority} Priority
-                        </span>
-                      </div>
-                      <h4 className="font-bold text-xs mt-0.5">{cmp.citizen} • Category: {cmp.category}</h4>
-                      <p className="text-xs text-muted-foreground mt-1">{cmp.remarks}</p>
-                    </div>
+              {(() => {
+                const liveComplaints = getStoredComplaints()
+                return (
+                  <div className="space-y-4">
+                    {liveComplaints.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-8 text-center">No citizen complaints currently registered.</p>
+                    ) : (
+                      liveComplaints.map((cmp) => {
+                        const statusColors: Record<string, string> = {
+                          Pending: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',
+                          Accepted: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
+                          'In Progress': 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
+                          Resolved: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
+                          Rejected: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
+                        }
 
-                    <div className="flex items-center gap-2">
-                      <span className={`badge ${
-                        cmp.status === 'Resolved' ? 'badge-status-resolved' : 'badge-status-pending'
-                      }`}>
-                        {cmp.status}
-                      </span>
-                      {cmp.status !== 'Resolved' && (
-                        <button onClick={() => handleComplaintResolve(cmp.id)} className="px-3.5 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold cursor-pointer">
-                          Mark Resolved
-                        </button>
-                      )}
-                    </div>
+                        return (
+                          <div key={cmp.id} className="p-5 rounded-2xl bg-secondary/40 border border-border space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono font-bold text-xs bg-background px-2.5 py-1 rounded-md border border-border">{cmp.id}</span>
+                                <span className="text-[9px] font-bold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-full">{cmp.category}</span>
+                                <span className="text-xs font-semibold text-muted-foreground">{cmp.village} ({cmp.ward_number})</span>
+                              </div>
+                              <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${statusColors[cmp.status] || 'bg-secondary text-muted-foreground'}`}>
+                                {cmp.status}
+                              </span>
+                            </div>
+
+                            <div>
+                              <h4 className="font-bold text-sm text-foreground">{cmp.title}</h4>
+                              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{cmp.description}</p>
+                              <p className="text-[11px] text-muted-foreground font-semibold mt-1">Submitted by: <strong className="text-foreground">{cmp.resident_name}</strong> (Mobile: {cmp.resident_mobile})</p>
+                            </div>
+
+                            {cmp.bdo_remarks && (
+                              <div className="p-3 rounded-xl bg-background border border-border text-xs space-y-1">
+                                <span className="font-bold text-primary block">BDO Officer Remarks:</span>
+                                <p className="italic text-muted-foreground">&quot;{cmp.bdo_remarks}&quot;</p>
+                              </div>
+                            )}
+
+                            {/* BDO Action Buttons */}
+                            <div className="pt-2 flex flex-wrap items-center gap-2">
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase">Update Status:</span>
+                              <button
+                                onClick={() => {
+                                  const remarks = prompt('Enter BDO Officer Remarks for Applicant:', 'BDO Accepted your complaint. Inspection team assigned.')
+                                  if (remarks !== null) { updateComplaintStatus(cmp.id, 'Accepted', remarks); toast.success('Status updated to Accepted') }
+                                }}
+                                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold cursor-pointer"
+                              >
+                                Accept 🟢
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const remarks = prompt('Enter BDO Officer Remarks for Applicant:', 'Work in progress by Panchayat team.')
+                                  if (remarks !== null) { updateComplaintStatus(cmp.id, 'In Progress', remarks); toast.success('Status updated to In Progress') }
+                                }}
+                                className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-[10px] font-bold cursor-pointer"
+                              >
+                                In Progress 🔵
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const remarks = prompt('Enter BDO Officer Remarks for Applicant:', 'Grievance resolved and verified.')
+                                  if (remarks !== null) { updateComplaintStatus(cmp.id, 'Resolved', remarks); toast.success('Status updated to Resolved') }
+                                }}
+                                className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold cursor-pointer"
+                              >
+                                Mark Resolved ✅
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const remarks = prompt('Reason for Rejection:', 'Duplicate or invalid request.')
+                                  if (remarks !== null) { updateComplaintStatus(cmp.id, 'Rejected', remarks); toast.success('Status updated to Rejected') }
+                                }}
+                                className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-[10px] font-bold cursor-pointer"
+                              >
+                                Reject 🔴
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
-                ))}
-              </div>
+                )
+              })()}
             </div>
           )}
 
-          {/* 6. ANNOUNCEMENTS TAB */}
+          {/* 5. ANNOUNCEMENTS TAB — Enhanced with Full Details */}
           {activeTab === 'announcements' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
+            <div className="space-y-6 glass-card p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
                 <div>
-                  <h3 className="font-bold text-sm">Notices & Circular Broadcast Center</h3>
-                  <p className="text-[10px] text-muted-foreground">Publish water cuts, power utilities scheduling or Panchayat meetings</p>
+                  <h3 className="font-extrabold text-base text-foreground">Village Public Announcements Broadcasting Center</h3>
+                  <p className="text-xs text-muted-foreground">Publish Gram Sabha meetings, health camps, subsidy distributions, and emergency notices to all residents</p>
                 </div>
-                <button onClick={() => setShowAddAnnounce(true)} className="px-3.5 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
-                  <PlusCircle className="w-4 h-4" /> Publish Notice
+                <button
+                  onClick={() => setShowAddAnnounce(true)}
+                  className="px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <PlusCircle className="w-4 h-4" /> Publish Village Notice
                 </button>
               </div>
 
-              {/* Add Announcement modal */}
+              {/* Add Announcement Modal */}
               {showAddAnnounce && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                  <div className="bg-card border border-border p-6 rounded-2xl w-full max-w-md space-y-4">
-                    <h3 className="font-black text-sm">Publish New Notice</h3>
-                    <form onSubmit={handleAddAnnounceSubmit} className="space-y-3.5">
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">Notice Type</label>
-                        <select value={noticeType} onChange={e => setNoticeType(e.target.value)} className="w-full p-2 text-xs rounded-xl bg-secondary border border-border">
-                          <option value="Village Notice">Village Notice</option>
-                          <option value="Water Supply Notice">Water Supply Notice</option>
-                          <option value="Road Closure">Road Closure</option>
-                          <option value="Health Camp">Health Camp</option>
-                          <option value="Gram Sabha Meeting">Gram Sabha Meeting</option>
-                        </select>
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+                  <div className="bg-card border border-border p-6 rounded-3xl w-full max-w-xl space-y-4 my-8 shadow-2xl">
+                    <div className="flex items-center justify-between border-b border-border pb-3">
+                      <h3 className="font-black text-base text-foreground">Publish Village Public Announcement</h3>
+                      <button onClick={() => setShowAddAnnounce(false)} className="text-muted-foreground hover:text-foreground cursor-pointer text-lg">✕</button>
+                    </div>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        const form = e.target as HTMLFormElement
+                        const titleVal = (form.elements.namedItem('ann_title') as HTMLInputElement).value
+                        const catVal = (form.elements.namedItem('ann_cat') as HTMLSelectElement).value
+                        const dateVal = (form.elements.namedItem('ann_date') as HTMLInputElement).value
+                        const startTimeVal = (form.elements.namedItem('ann_start') as HTMLInputElement).value
+                        const endTimeVal = (form.elements.namedItem('ann_end') as HTMLInputElement).value
+                        const venueVal = (form.elements.namedItem('ann_venue') as HTMLInputElement).value
+                        const villageVal = (form.elements.namedItem('ann_village') as HTMLInputElement).value
+                        const restrictionsVal = (form.elements.namedItem('ann_restr') as HTMLInputElement).value
+                        const descVal = (form.elements.namedItem('ann_desc') as HTMLTextAreaElement).value
+                        const imgVal = (form.elements.namedItem('ann_img') as HTMLInputElement).value
+                        const orgVal = (form.elements.namedItem('ann_org') as HTMLInputElement).value
+                        const phoneVal = (form.elements.namedItem('ann_phone') as HTMLInputElement).value
+                        const wardVal = (form.elements.namedItem('ann_ward') as HTMLInputElement).value
+
+                        saveAnnouncement({
+                          title: titleVal,
+                          category: catVal as any,
+                          date: dateVal,
+                          start_time: startTimeVal,
+                          end_time: endTimeVal,
+                          venue: venueVal,
+                          village: villageVal,
+                          ward_number: wardVal,
+                          eligibility_restrictions: restrictionsVal,
+                          description: descVal,
+                          image_url: imgVal || 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
+                          organizer: orgVal || 'BDO Office',
+                          contact_number: phoneVal || '1800-425-1000',
+                          status: 'Published'
+                        })
+
+                        toast.success('🎉 Village Announcement Published & Sent to all Resident Notifications!')
+                        setShowAddAnnounce(false)
+                      }}
+                      className="space-y-4"
+                    >
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground">Announcement Title *</label>
+                        <input name="ann_title" required type="text" placeholder="e.g. Special Gram Sabha Budget Meeting" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
                       </div>
-                      <div>
-                        <label className="block text-[10px] font-bold uppercase text-muted-foreground mb-1">Content Detail</label>
-                        <textarea value={noticeContent} onChange={e => setNoticeContent(e.target.value)} required rows={3} className="w-full p-2 text-xs rounded-xl bg-secondary border border-border" placeholder="Water pipelines cleaning will be conducted..." />
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Category *</label>
+                          <select name="ann_cat" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-bold">
+                            <option value="Gram Sabha">Gram Sabha</option>
+                            <option value="Health Camp">Health Camp</option>
+                            <option value="Awareness Rally">Awareness Rally</option>
+                            <option value="Crop Subsidy Distribution">Crop Subsidy Distribution</option>
+                            <option value="Public Works">Public Works</option>
+                            <option value="Emergency Alert">Emergency Alert</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Event Date *</label>
+                          <input name="ann_date" required type="date" defaultValue="2026-08-05" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
+                        </div>
                       </div>
-                      <div className="flex gap-2 justify-end pt-3">
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Start Time *</label>
+                          <input name="ann_start" required defaultValue="10:00 AM" placeholder="10:00 AM" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">End Time *</label>
+                          <input name="ann_end" required defaultValue="01:00 PM" placeholder="01:00 PM" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Venue / Location *</label>
+                          <input name="ann_venue" required type="text" placeholder="Gram Panchayat Community Hall" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Target Village</label>
+                          <input name="ann_village" defaultValue="All Villages" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Ward Number</label>
+                          <input name="ann_ward" defaultValue="All Wards" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Organizer / Officer</label>
+                          <input name="ann_org" defaultValue="BDO Office" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground">Target Audience & Entry Restrictions *</label>
+                        <input name="ann_restr" required defaultValue="Open to all adult residents (18+ yrs)." placeholder="e.g. Senior citizens 60+ yrs, Women only, Registered farmers..." className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground">Detailed Content / Agenda *</label>
+                        <textarea name="ann_desc" required rows={3} placeholder="Provide agenda details, required documents to bring, scheme coverage..." className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-medium" />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Flyer Image URL (Optional)</label>
+                          <input name="ann_img" type="text" placeholder="https://..." className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-medium" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground">Contact Helpline</label>
+                          <input name="ann_phone" defaultValue="1800-425-1000" className="w-full p-2.5 text-xs rounded-xl bg-secondary border border-border font-semibold" />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 justify-end pt-3 border-t border-border">
                         <button type="button" onClick={() => setShowAddAnnounce(false)} className="px-4 py-2 border border-border rounded-xl text-xs font-bold hover:bg-secondary cursor-pointer">Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-bold cursor-pointer">Broadcast Notice</button>
+                        <button type="submit" className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-black shadow-sm cursor-pointer">🔔 Publish & Notify All Residents</button>
                       </div>
                     </form>
                   </div>
                 </div>
               )}
 
-              {/* Announcements checklist mockup */}
-              <div className="glass-card p-6 space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Broadcast Notices Feed</h3>
-                <div className="divide-y divide-border">
-                  <div className="py-3 flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-bold">Scheduled Water supply maintenance - Ward 3</p>
-                      <p className="text-[10px] text-muted-foreground">Type: Water Supply Notice • Wednesday 9AM-1PM</p>
+              {/* Published Announcements Feed from Store */}
+              {(() => {
+                const liveAnnouncements = getStoredAnnouncements()
+                return (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Published Announcements ({liveAnnouncements.length})</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {liveAnnouncements.map((anc) => (
+                        <div key={anc.id} className="p-4 rounded-2xl bg-secondary/40 border border-border space-y-3 flex flex-col justify-between">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-bold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-full">{anc.category}</span>
+                              <span className="text-[10px] font-bold text-muted-foreground">{anc.date}</span>
+                            </div>
+                            <h4 className="font-extrabold text-sm text-foreground">{anc.title}</h4>
+                            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{anc.description}</p>
+                          </div>
+
+                          <div className="p-2.5 bg-background border border-border rounded-xl text-[11px] space-y-1">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Time:</span> <span className="font-bold">{anc.start_time} – {anc.end_time}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Venue:</span> <span className="font-bold">{anc.venue}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Restrictions:</span> <span className="font-bold text-amber-600 dark:text-amber-400">{anc.eligibility_restrictions}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Contact:</span> <span className="font-bold">{anc.contact_number}</span></div>
+                          </div>
+
+                          <div className="pt-2 flex justify-end">
+                            <button
+                              onClick={() => { deleteAnnouncement(anc.id); toast.success('Announcement deleted.') }}
+                              className="px-3 py-1 bg-red-600/10 text-red-500 border border-red-500/20 hover:bg-red-600 hover:text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                            >
+                              Delete Notice
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-600">Active</span>
                   </div>
-                  <div className="py-3 flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-bold">Scheduled Substation maintenance - Village Area</p>
-                      <p className="text-[10px] text-muted-foreground">Type: Utility Notice • Thursday 10AM-4PM</p>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-600">Active</span>
-                  </div>
-                </div>
-              </div>
+                )
+              })()}
             </div>
           )}
 

@@ -1,25 +1,81 @@
 import { z } from 'zod'
 
 // -------------------------------------------------------------
-// Profile Schema
+// Centralized 7-Step Profile Validation Schema
 // -------------------------------------------------------------
 export const profileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  age: z.coerce.number().min(0).max(120),
-  gender: z.enum(['Male', 'Female', 'Other', 'Prefer not to say']),
-  village: z.string().min(1, 'Village is required').max(100),
-  district: z.string().min(1, 'District is required').max(100),
-  occupation: z.string().min(1, 'Occupation is required').max(100),
-  annual_income: z.coerce.number().min(0, 'Income cannot be negative'),
-  community: z.enum(['General', 'OBC', 'SC', 'ST', 'Other']),
-  disability: z.boolean(),
-  farmer_status: z.boolean(),
-  land_ownership: z.boolean(),
+  // Step 1: Personal Info
+  name: z.string().min(2, 'Full Name must be at least 2 characters').max(100),
+  dob: z.string().min(1, 'Date of Birth is required'),
+  age: z.coerce.number().min(0, 'Age must be positive').max(120),
+  gender: z.enum(['Male', 'Female', 'Transgender', 'Other', 'Prefer not to say']),
+  mobile: z.string().min(10, 'Valid 10-digit mobile number required').max(15),
+  mobile_verified: z.boolean().default(true),
+  aadhaar: z.string().min(12, 'Aadhaar must be 12 digits').max(16),
+  family_id: z.string().min(4, 'Family ID / Ration Card Number required'),
+  marital_status: z.enum(['Single', 'Married', 'Widowed', 'Divorced', 'Separated']),
+  photo_url: z.string().optional(),
+  village: z.string().min(1, 'Village selection is required'),
+  ward_number: z.string().min(1, 'Ward number is required'),
+  house_number: z.string().optional(),
+  pincode: z.string().optional(),
+
+  // Step 2: Education
   education: z.enum([
-    'No Formal Education', 'Primary', 'Secondary', 'Higher Secondary',
-    'Diploma', 'Graduate', 'Post Graduate', 'Doctorate',
+    'No Formal Education', 'Primary', 'Middle', 'High School',
+    'Higher Secondary', 'Diploma', 'Undergraduate', 'Postgraduate', 'Doctorate'
   ]),
-  marital_status: z.enum(['Single', 'Married', 'Divorced', 'Widowed']),
+  school_college: z.string().optional(),
+  currently_studying: z.boolean().default(false),
+  student_id: z.string().optional(),
+
+  // Step 3: Employment
+  occupation: z.enum([
+    'Student', 'Homemaker', 'Farmer', 'Agricultural Labourer',
+    'Government Employee', 'Private Employee', 'Self Employed', 'Business Owner',
+    'Daily Wage Worker', 'Construction Worker', 'Teacher', 'Healthcare Worker',
+    'Retired', 'Unemployed'
+  ]),
+  monthly_income: z.coerce.number().min(0).default(0),
+  annual_income_range: z.enum([
+    'Below ₹1,00,000', '₹1,00,000 – ₹2,50,000', '₹2,50,000 – ₹5,00,000',
+    '₹5,00,000 – ₹10,00,000', 'Above ₹10,00,000'
+  ]),
+  annual_income: z.coerce.number().min(0).default(50000),
+  employer_name: z.string().optional(),
+
+  // Step 4: Land Details
+  own_land: z.boolean().default(false),
+  land_type: z.enum(['Agricultural', 'Residential', 'Commercial', 'Mixed']).optional().or(z.literal('')),
+  land_area_acres: z.coerce.number().min(0).optional(),
+  crop_type: z.string().optional(),
+  livestock: z.string().optional(),
+
+  // Step 5: Family Details
+  family_members_count: z.coerce.number().min(1, 'At least 1 family member required').default(1),
+  children_count: z.coerce.number().min(0).default(0),
+  women_count: z.coerce.number().min(0).default(0),
+  senior_citizens_count: z.coerce.number().min(0).default(0),
+  has_widow: z.boolean().default(false),
+  has_disabled: z.boolean().default(false),
+  disability_type: z.string().optional(),
+  has_pregnant: z.boolean().default(false),
+  has_lactating: z.boolean().default(false),
+  has_girl_child: z.boolean().default(false),
+
+  // Step 6: Women Empowerment
+  shg_member: z.boolean().default(false),
+  shg_name: z.string().optional(),
+  entrepreneur: z.boolean().default(false),
+  business_vertical: z.string().optional(),
+  interested_skill_training: z.boolean().default(false),
+  interested_govt_loans: z.boolean().default(false),
+  has_bank_account: z.boolean().default(true),
+  has_jandhan_account: z.boolean().default(false),
+  digital_literate: z.boolean().default(false),
+  has_smartphone: z.boolean().default(true),
+  has_internet: z.boolean().default(true),
+  previous_scheme_benefits: z.array(z.string()).default([]),
 })
 
 export type ProfileFormValues = z.infer<typeof profileSchema>
@@ -60,16 +116,10 @@ export const schemeSchema = z.object({
 
 export type SchemeFormValues = z.infer<typeof schemeSchema>
 
-// -------------------------------------------------------------
-// AI Chat Schema
-// -------------------------------------------------------------
 export const chatMessageSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty').max(2000),
 })
 
-// -------------------------------------------------------------
-// API Param Schemas
-// -------------------------------------------------------------
 export const paginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(12),
