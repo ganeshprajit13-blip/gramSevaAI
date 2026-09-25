@@ -3,11 +3,18 @@ import Groq from 'groq-sdk'
 // Singleton instance
 let groqClient: Groq | null = null
 
-export function getGroqClient(): Groq {
+export function hasValidGroqKey(): boolean {
+  const key = process.env.GROQ_API_KEY
+  return Boolean(key && key.trim() !== '' && key !== 'dummy_api_key_for_build')
+}
+
+export function getGroqClient(): Groq | null {
+  if (!hasValidGroqKey()) {
+    return null
+  }
   if (!groqClient) {
-    const apiKey = process.env.GROQ_API_KEY || 'dummy_api_key_for_build'
     groqClient = new Groq({
-      apiKey,
+      apiKey: process.env.GROQ_API_KEY!.trim(),
     })
   }
   return groqClient
@@ -30,6 +37,10 @@ export async function createGroqChatStream(options: {
   temperature?: number
 }) {
   const groq = getGroqClient()
+  if (!groq) {
+    throw new Error('GROQ_API_KEY not configured')
+  }
+
   let lastError: unknown = null
 
   for (const model of FALLBACK_MODELS) {

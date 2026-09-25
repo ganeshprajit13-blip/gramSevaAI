@@ -2,8 +2,33 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createGroqChatStream, SYSTEM_PROMPTS } from '@/lib/groq/client'
 import { verifyIdToken } from '@/lib/firebase/admin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { generateSmartRecommendations } from '@/lib/groq/knowledge'
+
+function createFallbackStream(text: string): ReadableStream {
+  const encoder = new TextEncoder()
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        const words = text.split(/(\s+)/)
+        for (const word of words) {
+          if (word) {
+            controller.enqueue(encoder.encode(word))
+            await new Promise((resolve) => setTimeout(resolve, 12))
+          }
+        }
+      } catch (e) {
+        console.warn('Fallback stream error:', e)
+      } finally {
+        controller.close()
+      }
+    },
+  })
+}
 
 export async function POST(request: NextRequest) {
+  let language: 'en' | 'ta' = 'en'
+  let profile: any = null
+
   try {
     const authHeader = request.headers.get('authorization')
     let decoded: any = null
@@ -15,7 +40,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let profile: any = null
     let schemes: any[] = []
 
     if (decoded?.uid) {
@@ -113,7 +137,6 @@ Resident Profile:
 - District: ${profile.district ?? 'Coimbatore'}, ${profile.village ?? 'Kinathukadavu'}
     `.trim()
 
-    let language = 'en'
     try {
       const body = await request.json()
       if (body?.language) language = body.language
@@ -150,29 +173,54 @@ Be specific about why each scheme fits their profile and what benefits they will
       ? `${SYSTEM_PROMPTS.schemeRecommendation}\n\nIMPORTANT LANGUAGE INSTRUCTION:\nThe citizen is using the portal in Tamil (தமிழ்). You MUST provide all evaluation, categorization ("முழுத் தகுதி", "பரிந்துரைக்கப்படுகிறது", "விண்ணப்பிக்கலாம்"), and step-by-step guidance in fluent and respectful Tamil (தமிழ்).`
       : SYSTEM_PROMPTS.schemeRecommendation
 
-    const stream = await createGroqChatStream({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      max_tokens: 750,
-      temperature: 0.7,
-    })
+    try {
+      const stream = await createGroqChatStream({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        max_tokens: 800,
+        temperature: 0.6,
+      })
 
-    const encoder = new TextEncoder()
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            const text = chunk.choices[0]?.delta?.content ?? ''
-            if (text) controller.enqueue(encoder.encode(text))
+      const encoder = new TextEncoder()
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of stream) {
+              const text = chunk.choices[0]?.delta?.content ?? ''
+              if (text) controller.enqueue(encoder.encode(text))
+            }
+            controller.close()
+          } catch (err) {
+            console.warn('Error during active Groq recommendation stream:', err)
+            controller.error(err)
           }
-          controller.close()
-        } catch (err) {
-          controller.error(err)
-        }
-      },
-    })
+        },
+      })
+
+      return new NextResponse(readable, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+        },
+      })
+    } catch (groqErr) {
+      console.warn('Groq model failed for recommendation. Using GramSeva Smart Engine:', groqErr)
+      const fallbackText = generateSmartRecommendations(profile, language)
+      const readable = createFallbackStream(fallbackText)
+
+      return new NextResponse(readable, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+        },
+      })
+    }
+  } catch (err: unknown) {
+    console.error('Fatal route error in /api/ai/recommend:', err)
+    const fallbackText = generateSmartRecommendations(profile || {}, language)
+    const readable = createFallbackStream(fallbackText)
 
     return new NextResponse(readable, {
       headers: {
@@ -180,10 +228,5 @@ Be specific about why each scheme fits their profile and what benefits they will
         'Transfer-Encoding': 'chunked',
       },
     })
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'AI service error' },
-      { status: 500 }
-    )
   }
 }
