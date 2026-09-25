@@ -30,6 +30,20 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
   const { t } = useLanguage()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const [currentTab, setCurrentTab] = useState('overview')
+
+  // Track active query tab for /admin/dashboard
+  useEffect(() => {
+    const updateTab = () => {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search)
+        setCurrentTab(params.get('tab') || 'overview')
+      }
+    }
+    updateTab()
+    window.addEventListener('popstate', updateTab)
+    return () => window.removeEventListener('popstate', updateTab)
+  }, [pathname])
 
   // Listen for sidebar toggle event dispatched from header or slide toggle button
   useEffect(() => {
@@ -50,21 +64,29 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
   }, [pathname])
 
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className="flex flex-col h-full bg-gradient-to-b from-white via-slate-50/70 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="flex flex-col h-full bg-gradient-to-b from-[#EAF8EF] via-[#F3FAF5] to-[#EAF8EF] dark:from-[#0a2e18] dark:via-[#0d3a1f] dark:to-[#0a2e18] border-r border-[#C6EDD5] dark:border-white/10">
+
+      {/* ── TRICOLOUR TOP BAR ── */}
+      <div className="h-1 flex flex-shrink-0">
+        <div className="flex-1 bg-[#FF9933]" />
+        <div className="flex-1 bg-white/70" />
+        <div className="flex-1 bg-[#138808]" />
+      </div>
+
       {/* Logo / Brand */}
-      <div className={`p-4 border-b border-slate-200/80 dark:border-slate-800/80 ${collapsed && !isMobile ? 'px-3' : ''}`}>
+      <div className={`p-4 border-b border-[#C6EDD5] dark:border-white/10 ${collapsed && !isMobile ? 'px-3' : ''}`}>
         <Link
           href="/admin/dashboard"
           className="flex items-center gap-3 group"
           onClick={() => isMobile && setMobileOpen(false)}
         >
-          <div className="w-9 h-9 relative flex-shrink-0 rounded-xl bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 flex items-center justify-center shadow-md">
+          <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-white ring-1 ring-[#A7DCBB] dark:ring-white/20 flex items-center justify-center shadow-sm">
             <img src="/tn-emblem.svg" alt="TN Emblem" className="w-5.5 h-5.5 object-contain" />
           </div>
           {(!collapsed || isMobile) && (
             <div className="min-w-0">
-              <p className="font-black text-sm leading-tight text-slate-900 dark:text-slate-100 truncate">{t('gramSevaAdmin')}</p>
-              <p className="text-[9px] text-[#0F766E] font-extrabold uppercase tracking-[0.18em] truncate">{t('tamilNaduBdo')}</p>
+              <p className="font-bold text-sm leading-tight text-[#14532d] dark:text-white truncate tracking-wide">GramSeva Admin</p>
+              <p className="text-[9px] text-[#166534] dark:text-green-300 font-semibold uppercase tracking-[0.15em] truncate mt-0.5">Tamil Nadu BDO Portal</p>
             </div>
           )}
         </Link>
@@ -72,14 +94,14 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
 
       {/* Admin Profile Card */}
       {profile && (!collapsed || isMobile) && (
-        <div className="p-3 mx-3 mt-4 rounded-2xl bg-gradient-to-r from-orange-50 to-rose-50 dark:from-orange-950/25 dark:to-rose-950/20 border border-orange-200/80 dark:border-orange-900/30 shadow-sm">
+        <div className="mx-3 mt-4 p-3 rounded-xl bg-white dark:bg-white/[0.06] border border-[#C6EDD5] dark:border-white/10 shadow-sm">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-md">
+            <div className="w-9 h-9 rounded-lg bg-[#14532d] flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm">
               {profile.name?.[0]?.toUpperCase() ?? 'A'}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold truncate text-slate-900 dark:text-slate-100">{profile.name ?? 'BDO Officer'}</p>
-              <span className="text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-300 px-2 py-0.5 rounded-full font-bold">{t('tamilNaduBdo')}</span>
+              <p className="text-xs font-semibold truncate text-[#14532d] dark:text-white">{profile.name ?? 'BDO Officer'}</p>
+              <span className="text-[9px] text-[#166534] dark:text-green-300 font-medium uppercase tracking-wider">Block Development Officer</span>
             </div>
           </div>
         </div>
@@ -88,16 +110,32 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
       {/* Collapsed avatar */}
       {profile && collapsed && !isMobile && (
         <div className="flex justify-center mt-4">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white text-sm font-bold shadow-md" title={profile.name ?? 'BDO Officer'}>
+          <div
+            className="w-9 h-9 rounded-lg bg-[#14532d] flex items-center justify-center text-white text-sm font-bold shadow-sm"
+            title={profile.name ?? 'BDO Officer'}
+          >
             {profile.name?.[0]?.toUpperCase() ?? 'A'}
           </div>
         </div>
       )}
 
+      {/* Section label */}
+      {(!collapsed || isMobile) && (
+        <p className="px-4 pt-5 pb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-[#166534]/60 dark:text-green-400/60 select-none">
+          Navigation
+        </p>
+      )}
+
       {/* Nav Items */}
-      <nav className="flex-1 p-2.5 space-y-1 mt-2 overflow-y-auto">
+      <nav className="flex-1 px-2 pb-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href))
+          let isActive = false
+          if (pathname === '/admin/dashboard') {
+            const itemTab = item.href.includes('?tab=') ? item.href.split('?tab=')[1] : 'overview'
+            isActive = item.href.startsWith('/admin/dashboard') && currentTab === itemTab
+          } else if (item.href !== '/admin/dashboard' && !item.href.includes('?tab=') && pathname.startsWith(item.href)) {
+            isActive = true
+          }
           const isFeatured = (item as any).isFeatured
           const labelText = (item as any).label || t(item.translationKey)
           const Icon = item.icon
@@ -107,30 +145,22 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
               href={item.href}
               onClick={() => isMobile && setMobileOpen(false)}
               title={collapsed && !isMobile ? labelText : undefined}
-              className={
-                isFeatured
-                  ? `flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      isActive
-                        ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-md'
-                        : 'bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/40 dark:to-purple-950/40 text-pink-700 dark:text-pink-300 border border-pink-200/60 dark:border-pink-800/40 hover:shadow-sm'
-                    } ${collapsed && !isMobile ? 'justify-center px-0' : ''}`
-                  : `flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
-                      isActive
-                        ? 'bg-[#0F766E]/10 dark:bg-teal-950/40 text-[#0F766E] dark:text-teal-400 border border-[#0F766E]/20 dark:border-teal-800/40 shadow-xs font-bold'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
-                    } ${collapsed && !isMobile ? 'justify-center px-0' : ''}`
-              }
+              className={`flex items-center gap-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
+                isActive
+                  ? 'bg-[#14532d] text-white border-l-[3px] border-[#FF9933] px-3 pl-[10px] shadow-sm'
+                  : 'text-[#1a5c35] dark:text-green-100/80 hover:bg-[#D1F0DC] dark:hover:bg-white/[0.08] hover:text-[#14532d] dark:hover:text-white border-l-[3px] border-transparent px-3 pl-[10px]'
+              } ${collapsed && !isMobile ? 'justify-center !px-0 !pl-0 !border-l-0' : ''}`}
             >
-              <Icon className={`w-4 h-4 flex-shrink-0 ${isFeatured && !isActive ? 'text-pink-600 dark:text-pink-400' : ''}`} />
+              <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-[#86EFAC]' : 'text-[#16a34a] dark:text-green-400/80'}`} />
               {(!collapsed || isMobile) && (
                 <>
                   <span className="flex-1 truncate">{labelText}</span>
                   {isFeatured && !isActive && (
-                    <span className="ml-auto text-[9px] font-black uppercase bg-pink-200 dark:bg-pink-900 text-pink-800 dark:text-pink-200 px-1.5 py-0.5 rounded-md">
+                    <span className="ml-auto text-[8px] font-bold uppercase bg-[#14532d]/10 text-[#14532d] dark:bg-white/10 dark:text-green-200 px-1.5 py-0.5 rounded border border-[#14532d]/20 dark:border-white/10">
                       AI
                     </span>
                   )}
-                  {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-60 flex-shrink-0" />}
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-[#86EFAC] flex-shrink-0" />}
                 </>
               )}
             </Link>
@@ -139,22 +169,22 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
       </nav>
 
       {/* Footer controls */}
-      <div className="p-2.5 border-t border-slate-200/80 dark:border-slate-800/80 space-y-1">
+      <div className="p-2 border-t border-[#C6EDD5] dark:border-white/10 space-y-0.5">
         <Link
           href="/dashboard"
           title={collapsed && !isMobile ? t('residentView') : undefined}
-          className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all ${
-            collapsed && !isMobile ? 'justify-center px-0' : ''
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-[#1a5c35] dark:text-green-200/70 hover:bg-[#D1F0DC] dark:hover:bg-white/[0.08] hover:text-[#14532d] dark:hover:text-white transition-all ${
+            collapsed && !isMobile ? 'justify-center !px-0' : ''
           }`}
         >
-          <Building2 className="w-4 h-4 flex-shrink-0" />
+          <Building2 className="w-4 h-4 flex-shrink-0 text-[#16a34a]/60 dark:text-green-400/60" />
           {(!collapsed || isMobile) && <span>{t('residentView')}</span>}
         </Link>
         <button
           onClick={onLogout}
           title={collapsed && !isMobile ? t('signOut') : undefined}
-          className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200 cursor-pointer w-full ${
-            collapsed && !isMobile ? 'justify-center px-0' : ''
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-red-600/80 dark:text-red-400/80 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 transition-all duration-150 cursor-pointer w-full ${
+            collapsed && !isMobile ? 'justify-center !px-0' : ''
           }`}
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
@@ -166,11 +196,11 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
 
   return (
     <>
-      {/* DESKTOP SIDEBAR (permanent & collapsible for BDO) */}
+      {/* DESKTOP SIDEBAR */}
       <motion.aside
         animate={{ width: collapsed ? 60 : 250 }}
         transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-        className="hidden lg:flex flex-col flex-shrink-0 h-screen sticky top-0 bg-white dark:bg-slate-950 border-r border-slate-200/80 dark:border-slate-800/80 shadow-[4px_0_20px_rgba(15,23,42,0.05)] overflow-hidden z-30"
+        className="hidden lg:flex flex-col flex-shrink-0 h-screen sticky top-0 bg-gradient-to-b from-[#EAF8EF] via-[#F3FAF5] to-[#EAF8EF] dark:from-[#0a2e18] dark:via-[#0d3a1f] dark:to-[#0a2e18] border-r border-[#C6EDD5] dark:border-white/10 shadow-[4px_0_18px_rgba(20,83,45,0.08)] overflow-hidden z-30"
       >
         <SidebarContent />
       </motion.aside>
@@ -183,7 +213,7 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.div
@@ -191,12 +221,12 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="fixed left-0 top-0 bottom-0 w-72 bg-white dark:bg-slate-950 border-r border-slate-200/80 dark:border-slate-800/80 z-50 shadow-2xl lg:hidden"
+              className="fixed left-0 top-0 bottom-0 w-72 bg-gradient-to-b from-[#EAF8EF] via-[#F3FAF5] to-[#EAF8EF] dark:from-[#0a2e18] dark:via-[#0d3a1f] dark:to-[#0a2e18] border-r border-[#C6EDD5] dark:border-white/10 z-50 shadow-2xl lg:hidden"
             >
               <button
                 onClick={() => setMobileOpen(false)}
                 aria-label="Close navigation menu"
-                className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 cursor-pointer z-10"
+                className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-[#D1F0DC] dark:hover:bg-white/10 text-[#14532d] dark:text-white/60 cursor-pointer z-10"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -208,4 +238,3 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
     </>
   )
 }
-

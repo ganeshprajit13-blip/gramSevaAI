@@ -1046,7 +1046,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <img src="/tn-emblem.svg" alt="TN Crest" className="w-8 h-8 object-contain invert brightness-200" />
+                <img src="/tn-emblem.svg" alt="TN Crest" className="w-8 h-8 object-contain" />
                 <div>
                   <h4 className="font-extrabold text-sm text-white">GramSeva AI Citizen Portal</h4>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wider">Govt of Tamil Nadu</p>
