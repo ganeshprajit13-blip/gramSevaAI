@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, CheckCircle2, Info, AlertTriangle, FileText, Calendar, Trash2 } from 'lucide-react'
 import { useAuth } from '@/components/providers/auth-provider'
+import { useLanguage } from '@/components/providers/language-provider'
 import { Notification } from '@/types'
 import { timeAgo } from '@/utils'
 import Link from 'next/link'
 
 export default function NotificationsPage() {
   const { user } = useAuth()
+  const { t, language } = useLanguage()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -18,8 +20,8 @@ export default function NotificationsPage() {
     const mockNotes: Notification[] = [
       {
         id: '1',
-        title: 'New Scheme Available',
-        message: 'A new subsidy for farmers in your district has been announced.',
+        title: language === 'ta' ? 'புதிய அரசுத் திட்டம் வெளியிடப்பட்டது' : 'New Scheme Available',
+        message: language === 'ta' ? 'உங்கள் மாவட்டத்தில் உள்ள விவசாயிகளுக்கான புதிய மானியத் திட்டம் அறிவிக்கப்பட்டுள்ளது.' : 'A new subsidy for farmers in your district has been announced.',
         type: 'scheme_published',
         scheme_id: '123',
         created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
@@ -27,8 +29,8 @@ export default function NotificationsPage() {
       },
       {
         id: '2',
-        title: 'Profile Incomplete',
-        message: 'Please complete your profile to get personalized scheme recommendations.',
+        title: language === 'ta' ? 'சுயவிவரம் முழுமையடையவில்லை' : 'Profile Incomplete',
+        message: language === 'ta' ? 'பொருத்தமான நலத்திட்ட பரிந்துரைகளைப் பெற உங்கள் சுயவிவரப் படிவத்தை முடிக்கவும்.' : 'Please complete your profile to get personalized scheme recommendations.',
         type: 'reminder',
         created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
         is_read: true
@@ -47,7 +49,7 @@ export default function NotificationsPage() {
     }).catch(() => {
       setNotifications(mockNotes)
     }).finally(() => setLoading(false))
-  }, [user])
+  }, [user, language])
 
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
@@ -70,11 +72,15 @@ export default function NotificationsPage() {
     <div className="space-y-6 pt-8 lg:pt-0 max-w-3xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Notifications</h1>
-          <p className="page-subtitle">Stay updated with the latest schemes and announcements</p>
+          <h1 className="page-title">{t('notifications')}</h1>
+          <p className="page-subtitle">
+            {language === 'ta'
+              ? 'சமீபத்திய அரசுத் திட்டங்கள் மற்றும் பொது அறிவிப்புகளைப் பெறுங்கள்'
+              : 'Stay updated with the latest schemes and announcements'}
+          </p>
         </div>
         <div className="bg-secondary px-3 py-1.5 rounded-lg text-sm font-medium">
-          {notifications.filter(n => !n.is_read).length} Unread
+          {notifications.filter(n => !n.is_read).length} {language === 'ta' ? 'படிக்காதவை' : 'Unread'}
         </div>
       </div>
 
@@ -84,8 +90,8 @@ export default function NotificationsPage() {
         ) : notifications.length === 0 ? (
           <div className="glass-card p-12 text-center">
             <Bell className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="font-bold mb-2">No notifications yet</h3>
-            <p className="text-sm text-muted-foreground">You're all caught up!</p>
+            <h3 className="font-bold mb-2">{language === 'ta' ? 'அறிவிப்புகள் ஏதுமில்லை' : 'No notifications yet'}</h3>
+            <p className="text-sm text-muted-foreground">{language === 'ta' ? 'நீங்கள் அனைத்து அறிவிப்புகளையும் பார்த்துவிட்டீர்கள்!' : "You're all caught up!"}</p>
           </div>
         ) : (
           <AnimatePresence>
@@ -118,7 +124,7 @@ export default function NotificationsPage() {
                   
                   {note.scheme_id && (
                     <Link href={`/schemes/${note.scheme_id}`} className="text-xs font-medium text-primary hover:underline">
-                      View Scheme Details →
+                      {t('viewDetails')} →
                     </Link>
                   )}
                 </div>
@@ -126,7 +132,7 @@ export default function NotificationsPage() {
                 <div className="flex flex-col gap-2">
                   <button 
                     onClick={(e) => { e.stopPropagation(); deleteNotification(note.id); }}
-                    className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                    className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
                     aria-label="Delete notification"
                   >
                     <Trash2 className="w-4 h-4" />

@@ -7,6 +7,7 @@ import {
   Bell, Calendar, Clock, MapPin, Phone, Users, ShieldAlert,
   Search, Filter, ExternalLink, X, Building2, CheckCircle2, Info
 } from 'lucide-react'
+import { useLanguage } from '@/components/providers/language-provider'
 import { getStoredAnnouncements, type AnnouncementRecord } from '@/lib/announcement-store'
 
 const CATEGORIES = [
@@ -15,13 +16,14 @@ const CATEGORIES = [
 ]
 
 export default function ResidentAnnouncementsPage() {
+  const { language, t } = useLanguage()
   const [announcements, setAnnouncements] = useState<AnnouncementRecord[]>([])
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [search, setSearch] = useState('')
   const [selectedAnnouncementModal, setSelectedAnnouncementModal] = useState<AnnouncementRecord | null>(null)
 
   const loadAnnouncements = () => {
-    const data = getStoredAnnouncements().filter(a => a.status === 'Published')
+    const data = getStoredAnnouncements().filter(a => a.status === 'Published' || a.isActive)
     setAnnouncements(data)
   }
 
@@ -43,18 +45,18 @@ export default function ResidentAnnouncementsPage() {
   return (
     <div className="space-y-6 pt-6 pb-20 max-w-6xl mx-auto px-4 md:px-6">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-6 md:p-8 text-white space-y-3 shadow-lg">
+      <div className="bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 rounded-3xl p-6 md:p-8 text-white space-y-3 shadow-lg">
         <div className="flex items-center gap-2">
-          <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-black uppercase px-2.5 py-1 rounded-md">
-            Official Gram Panchayat Broadcasting
+          <span className="bg-teal-500/20 text-teal-300 border border-teal-400/30 text-[10px] font-black uppercase px-2.5 py-1 rounded-md">
+            {language === 'en' ? 'Official Gram Panchayat Broadcasting' : 'அதிகாரப்பூர்வ கிராம ஊராட்சி அறிவிப்புகள்'}
           </span>
           <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-black uppercase px-2.5 py-1 rounded-md">
-            Live Village Events
+            {language === 'en' ? 'Live Village Events' : 'நேரடி கிராம நிகழ்வுகள்'}
           </span>
         </div>
-        <h1 className="text-2xl md:text-3xl font-black tracking-tight">Village Public Announcements</h1>
-        <p className="text-xs md:text-sm text-slate-300 max-w-xl">
-          Gram Sabha schedule, health camps, subsidy distributions, and emergency village notices published directly by the Block Development Officer (BDO).
+        <h1 className="text-2xl md:text-3xl font-black tracking-tight">{t('announcementsTitle')}</h1>
+        <p className="text-xs md:text-sm text-slate-300 max-w-xl leading-relaxed">
+          {t('announcementsSubtitle')}
         </p>
       </div>
 
@@ -67,11 +69,11 @@ export default function ResidentAnnouncementsPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search announcements by title, venue, or keyword..."
-              className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-10 py-3 text-xs font-semibold shadow-xs"
+              placeholder={t('searchAnnouncementsPlaceholder')}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-10 pr-10 py-3 text-xs sm:text-sm font-semibold shadow-xs"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -80,154 +82,186 @@ export default function ResidentAnnouncementsPage() {
 
         {/* Category Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
-                selectedCategory === cat
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          {CATEGORIES.map(cat => {
+            const label = cat === 'All'
+              ? t('all')
+              : cat === 'Gram Sabha'
+              ? (language === 'en' ? 'Gram Sabha' : 'கிராம சபை')
+              : cat === 'Health Camp'
+              ? (language === 'en' ? 'Health Camp' : 'மருத்துவ முகாம்')
+              : cat === 'Awareness Rally'
+              ? (language === 'en' ? 'Awareness Rally' : 'விழிப்புணர்வு பேரணி')
+              : cat === 'Crop Subsidy Distribution'
+              ? (language === 'en' ? 'Crop Subsidy Distribution' : 'பயிர் மானிய விநியோகம்')
+              : cat === 'Public Works'
+              ? (language === 'en' ? 'Public Works' : 'பொதுப்பணிகள்')
+              : cat === 'Emergency Alert'
+              ? (language === 'en' ? 'Emergency Alert' : 'அவசரகால எச்சரிக்கை')
+              : t('catOther')
+
+            return (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                  selectedCategory === cat
+                    ? 'bg-[#0F766E] text-white border-[#0F766E] shadow-xs'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+                }`}
+              >
+                {label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {/* ANNOUNCEMENTS GRID */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 bg-white border border-slate-200 rounded-3xl p-8 shadow-xs">
+        <div className="text-center py-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xs">
           <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="font-extrabold text-slate-800 text-base mb-1">No Announcements Found</h3>
-          <p className="text-xs text-slate-500">There are no active village announcements matching your filter.</p>
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-200 text-base mb-1">
+            {t('noAnnouncementsFound')}
+          </h3>
+          <p className="text-xs text-slate-500">
+            {language === 'en' ? 'There are no active village announcements matching your filter.' : 'உங்கள் தேர்வுக்குரிய அறிவிப்புகள் ஏதுமில்லை.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filtered.map(anc => (
-            <motion.div
-              key={anc.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
-            >
-              {anc.image_url && (
-                <img
-                  src={anc.image_url}
-                  alt={anc.title}
-                  className="w-full h-44 object-cover"
-                />
-              )}
+          {filtered.map(anc => {
+            const title = language === 'ta' && (anc as any).title_ta ? (anc as any).title_ta : anc.title
+            const desc = language === 'ta' && (anc as any).description_ta ? (anc as any).description_ta : anc.description
 
-              <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="bg-blue-100 text-blue-800 text-[10px] font-black uppercase px-2.5 py-1 rounded-md">
-                      {anc.category}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-blue-600" /> {anc.date}
-                    </span>
+            return (
+              <motion.div
+                key={anc.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                {anc.image_url && (
+                  <img
+                    src={anc.image_url}
+                    alt={title}
+                    className="w-full h-44 object-cover"
+                  />
+                )}
+
+                <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="bg-teal-100 dark:bg-teal-950/40 text-[#0F766E] dark:text-teal-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-md">
+                        {anc.category || t('announcements')}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-[#0F766E]" /> {anc.date || (anc.createdAt ? anc.createdAt.split('T')[0] : '2026-08-05')}
+                      </span>
+                    </div>
+
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 leading-snug">{title}</h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">{desc}</p>
                   </div>
 
-                  <h3 className="font-extrabold text-base text-slate-900 leading-snug">{anc.title}</h3>
-                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{anc.description}</p>
-                </div>
+                  {/* Details Grid */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                    {anc.start_time && (
+                      <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 font-semibold">
+                        <span className="flex items-center gap-1.5 text-slate-500"><Clock className="w-3.5 h-3.5 text-[#0F766E]" /> {t('eventTime')}:</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{anc.start_time} - {anc.end_time || '01:00 PM'}</span>
+                      </div>
+                    )}
 
-                {/* Details Grid */}
-                <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
-                  <div className="flex items-center justify-between text-slate-700 font-semibold">
-                    <span className="flex items-center gap-1.5 text-slate-500"><Clock className="w-3.5 h-3.5 text-blue-600" /> Time:</span>
-                    <span className="font-bold text-slate-900">{anc.start_time} - {anc.end_time}</span>
+                    {anc.venue && (
+                      <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 font-semibold">
+                        <span className="flex items-center gap-1.5 text-slate-500"><MapPin className="w-3.5 h-3.5 text-emerald-600" /> {t('eventVenue')}:</span>
+                        <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{anc.venue}</span>
+                      </div>
+                    )}
+
+                    {anc.eligibility_restrictions && (
+                      <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-[11px] text-amber-900 dark:text-amber-300 font-semibold flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                        <span>{t('eventRestrictions')}: <strong>{anc.eligibility_restrictions}</strong></span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center justify-between text-slate-700 font-semibold">
-                    <span className="flex items-center gap-1.5 text-slate-500"><MapPin className="w-3.5 h-3.5 text-emerald-600" /> Venue:</span>
-                    <span className="font-bold text-slate-900 truncate max-w-[200px]">{anc.venue}</span>
-                  </div>
-
-                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 font-semibold flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                    <span>Restrictions: <strong>{anc.eligibility_restrictions}</strong></span>
-                  </div>
-                </div>
-
-                {/* Card Footer Actions */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => setSelectedAnnouncementModal(anc)}
-                    className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black transition-all text-center"
-                  >
-                    View Full Announcement Details
-                  </button>
-
-                  {anc.maps_link && (
-                    <a
-                      href={anc.maps_link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-bold flex items-center gap-1"
+                  {/* Card Footer Actions */}
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => setSelectedAnnouncementModal(anc)}
+                      className="flex-1 py-2.5 bg-[#0F766E] hover:bg-[#0d645e] text-white rounded-xl text-xs font-black transition-all text-center cursor-pointer shadow-xs"
                     >
-                      <MapPin className="w-4 h-4" /> Map
-                    </a>
-                  )}
+                      {language === 'en' ? 'View Full Announcement Details' : 'முழு விவரங்களைக் காண்க'}
+                    </button>
+
+                    {anc.maps_link && (
+                      <a
+                        href={anc.maps_link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 rounded-xl text-xs font-bold flex items-center gap-1"
+                      >
+                        <MapPin className="w-4 h-4" /> {language === 'en' ? 'Map' : 'வரைபடம்'}
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            )
+          })}
         </div>
       )}
 
-      {/* FULL ANNOUNCEMENT MODAL */}
+      {/* ── DETAIL MODAL ── */}
       <AnimatePresence>
         {selectedAnnouncementModal && (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-6 shadow-2xl overflow-hidden my-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedAnnouncementModal(null)}
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl z-10 border border-slate-200 dark:border-slate-800 space-y-4"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <span className="text-xs font-black text-blue-600 uppercase tracking-wider">Official Village Notice</span>
-                <button onClick={() => setSelectedAnnouncementModal(null)} className="p-1 text-slate-400 hover:text-slate-700">
-                  <X className="w-5 h-5" />
+              <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                  {language === 'ta' && (selectedAnnouncementModal as any).title_ta
+                    ? (selectedAnnouncementModal as any).title_ta
+                    : selectedAnnouncementModal.title}
+                </h3>
+                <button onClick={() => setSelectedAnnouncementModal(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {selectedAnnouncementModal.image_url && (
-                  <img src={selectedAnnouncementModal.image_url} alt="" className="w-full h-48 object-cover rounded-2xl" />
-                )}
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                {language === 'ta' && (selectedAnnouncementModal as any).description_ta
+                  ? (selectedAnnouncementModal as any).description_ta
+                  : selectedAnnouncementModal.description}
+              </p>
 
-                <div className="space-y-2">
-                  <span className="text-[10px] font-black uppercase bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                    {selectedAnnouncementModal.category}
-                  </span>
-                  <h3 className="text-xl font-black text-slate-900">{selectedAnnouncementModal.title}</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">{selectedAnnouncementModal.description}</p>
-                </div>
+              <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                <p><strong>{t('eventVenue')}:</strong> {selectedAnnouncementModal.venue || 'Gram Panchayat Community Hall'}</p>
+                <p><strong>{t('eventDate')}:</strong> {selectedAnnouncementModal.date || '2026-08-05'}</p>
+                <p><strong>{t('eventTime')}:</strong> {selectedAnnouncementModal.start_time || '10:00 AM'} - {selectedAnnouncementModal.end_time || '01:00 PM'}</p>
+                <p><strong>{t('eventOrganizer')}:</strong> {selectedAnnouncementModal.organizer || 'Block Development Officer (BDO)'}</p>
+              </div>
 
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs">
-                  <div className="flex justify-between"><span className="font-bold text-slate-500">Date & Time:</span> <span className="font-extrabold text-slate-900">{selectedAnnouncementModal.date} ({selectedAnnouncementModal.start_time} - {selectedAnnouncementModal.end_time})</span></div>
-                  <div className="flex justify-between"><span className="font-bold text-slate-500">Venue:</span> <span className="font-extrabold text-slate-900">{selectedAnnouncementModal.venue}</span></div>
-                  <div className="flex justify-between"><span className="font-bold text-slate-500">Village/Ward:</span> <span className="font-bold text-slate-900">{selectedAnnouncementModal.village} ({selectedAnnouncementModal.ward_number})</span></div>
-                  <div className="flex justify-between"><span className="font-bold text-slate-500">Target Group:</span> <span className="font-bold text-amber-700">{selectedAnnouncementModal.eligibility_restrictions}</span></div>
-                  <div className="flex justify-between"><span className="font-bold text-slate-500">Organizer:</span> <span className="font-bold text-slate-900">{selectedAnnouncementModal.organizer}</span></div>
-                  <div className="flex justify-between"><span className="font-bold text-slate-500">Contact Helpline:</span> <span className="font-bold text-blue-600">{selectedAnnouncementModal.contact_number}</span></div>
-                </div>
-
-                {selectedAnnouncementModal.maps_link && (
-                  <a
-                    href={selectedAnnouncementModal.maps_link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-3 bg-emerald-600 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs"
-                  >
-                    <MapPin className="w-4 h-4" /> Open Venue Directions on Google Maps
-                  </a>
-                )}
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={() => setSelectedAnnouncementModal(null)}
+                  className="px-4 py-2 bg-[#0F766E] text-white text-xs font-bold rounded-xl"
+                >
+                  {t('close')}
+                </button>
               </div>
             </motion.div>
           </div>

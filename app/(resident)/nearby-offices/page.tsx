@@ -1,23 +1,27 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef, Component, ErrorInfo, ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   MapPin, Navigation2, Clock, Phone, Search,
   Compass, Crosshair, Building2, Filter, AlertCircle,
   ExternalLink, ChevronRight, CheckCircle2, Shield,
-  HeartPulse, Mail, Landmark, RefreshCw, X, Radio
+  HeartPulse, Mail, Landmark, RefreshCw, X, Radio,
+  LocateFixed, LocateOff
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuth } from '@/components/providers/auth-provider'
-import NearbyOfficesMap, { type PlaceOffice } from '@/components/resident/nearby-offices-map'
+import NearbyOfficesMap, {
+  type PlaceOffice,
+  buildFallbackOffices
+} from '@/components/resident/nearby-offices-map'
 
-// Default fallback location: Kinathukadavu, Coimbatore District, Tamil Nadu, India
-const DEFAULT_FALLBACK_LOCATION = {
+// Default Kinathukadavu Location Constant
+export const DEFAULT_KINATHUKADAVU_LOCATION = {
   name: 'Kinathukadavu, Coimbatore',
-  fullAddress: 'Kinathukadavu, Coimbatore District, Tamil Nadu, India',
-  lat: 10.8208,
-  lng: 77.0195,
+  address: 'Kinathukadavu, Coimbatore District, Tamil Nadu, India',
+  latitude: 10.822000,
+  longitude: 77.016000,
+  source: 'fallback' as const,
 }
 
 // Filter Categories
@@ -27,26 +31,80 @@ const CATEGORY_FILTERS = [
   { id: 'Panchayat', label: 'Panchayat' },
   { id: 'VAO', label: 'VAO Office' },
   { id: 'Taluk Office', label: 'Taluk Office' },
-  { id: 'E-Sevai', label: 'E-Sevai Center' },
-  { id: 'Hospital', label: 'Hospital / PHC' },
-  { id: 'Police', label: 'Police Station' },
   { id: 'Post Office', label: 'Post Office' },
+  { id: 'E-Sevai', label: 'E-Sevai' },
+  { id: 'Hospital', label: 'Hospital' },
+  { id: 'Police', label: 'Police' },
 ] as const
 
 const RADIUS_OPTIONS = [
-  { value: 10000, label: '10 km (Default)' },
+  { value: 10000, label: '10 km' },
   { value: 25000, label: '25 km' },
   { value: 50000, label: '50 km' },
 ]
 
-export default function NearbyOfficesPage() {
-  const { profile } = useAuth()
+// ── ERROR BOUNDARY FOR ROBUST ISOLATION ──
+interface ErrorBoundaryProps {
+  children: ReactNode
+}
 
-  // Location State (Priority: 1. User Profile Village -> 2. User Selected -> 3. Kinathukadavu Fallback)
-  const [currentLocation, setCurrentLocation] = useState({
-    name: DEFAULT_FALLBACK_LOCATION.name,
-    lat: DEFAULT_FALLBACK_LOCATION.lat,
-    lng: DEFAULT_FALLBACK_LOCATION.lng,
+interface ErrorBoundaryState {
+  hasError: boolean
+}
+
+class MapErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.warn('MapErrorBoundary caught an error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full min-h-[380px] flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-3xl p-6 text-center border border-slate-200 dark:border-slate-800">
+          <MapPin className="w-10 h-10 text-[#0F766E] mb-2" />
+          <h3 className="text-sm font-black text-slate-900 dark:text-white">
+            Nearby Office Map View
+          </h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mb-4 leading-relaxed">
+            Kinathukadavu Government GIS mode active. You can browse and get directions for all government offices from the list.
+          </p>
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            className="px-4 py-2 bg-[#0F766E] text-white rounded-xl text-xs font-bold shadow-sm hover:bg-[#0d645e] transition-all cursor-pointer"
+          >
+            Reload Map
+          </button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
+export default function NearbyOfficesPage() {
+  // ── 1. SINGLE SOURCE OF TRUTH LOCATION STATE ──
+  const [currentLocation, setCurrentLocation] = useState<{
+    name: string
+    address: string
+    latitude: number
+    longitude: number
+    source: 'fallback' | 'gps'
+  }>({
+    name: DEFAULT_KINATHUKADAVU_LOCATION.name,
+    address: DEFAULT_KINATHUKADAVU_LOCATION.address,
+    latitude: DEFAULT_KINATHUKADAVU_LOCATION.latitude,
+    longitude: DEFAULT_KINATHUKADAVU_LOCATION.longitude,
+    source: DEFAULT_KINATHUKADAVU_LOCATION.source,
   })
 
   // Search & Filter States
@@ -54,62 +112,32 @@ export default function NearbyOfficesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isLocating, setIsLocating] = useState<boolean>(false)
+  const [isTracking, setIsTracking] = useState<boolean>(false)
 
-  // Real Google Places State
-  const [offices, setOffices] = useState<PlaceOffice[]>([])
-  const [isLoadingPlaces, setIsLoadingPlaces] = useState<boolean>(true)
-  const [placesError, setPlacesError] = useState<string | null>(null)
+  // Pre-fill offices with the 4 verified Kinathukadavu fallback offices
+  const [offices, setOffices] = useState<PlaceOffice[]>(() =>
+    buildFallbackOffices(DEFAULT_KINATHUKADAVU_LOCATION.latitude, DEFAULT_KINATHUKADAVU_LOCATION.longitude, null)
+  )
   const [selectedOffice, setSelectedOffice] = useState<PlaceOffice | null>(null)
+
+  const watchIdRef = useRef<number | null>(null)
+  const lastTrackedPosRef = useRef<{ lat: number; lng: number } | null>(null)
 
   // API Key from Environment
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 
-  // ── 1. LOCATION INITIALIZATION (Priority: User Profile Village -> Kinathukadavu) ──
-  useEffect(() => {
-    if (profile?.village) {
-      const userVillageName = `${profile.village}, ${profile.district || 'Coimbatore'}`
-      
-      // If Google Maps is ready, geocode the user's registered village
-      if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
-        const geocoder = new window.google.maps.Geocoder()
-        geocoder.geocode(
-          { address: `${profile.village}, ${profile.district || 'Coimbatore'}, Tamil Nadu, India` },
-          (results, status) => {
-            if (status === window.google.maps.GeocoderStatus.OK && results?.[0]?.geometry?.location) {
-              const loc = results[0].geometry.location
-              setCurrentLocation({
-                name: userVillageName,
-                lat: loc.lat(),
-                lng: loc.lng(),
-              })
-            } else {
-              // Fallback to Kinathukadavu coordinates if geocoding fails
-              setCurrentLocation({
-                name: userVillageName,
-                lat: DEFAULT_FALLBACK_LOCATION.lat,
-                lng: DEFAULT_FALLBACK_LOCATION.lng,
-              })
-            }
-          }
-        )
-      } else {
-        setCurrentLocation({
-          name: userVillageName,
-          lat: DEFAULT_FALLBACK_LOCATION.lat,
-          lng: DEFAULT_FALLBACK_LOCATION.lng,
-        })
-      }
-    } else {
-      // Default to Kinathukadavu, Coimbatore, Tamil Nadu
-      setCurrentLocation({
-        name: DEFAULT_FALLBACK_LOCATION.name,
-        lat: DEFAULT_FALLBACK_LOCATION.lat,
-        lng: DEFAULT_FALLBACK_LOCATION.lng,
-      })
-    }
-  }, [profile])
+  // Memoize map center object so its reference is stable across renders
+  const mapCenter = useMemo(
+    () => ({ lat: currentLocation.latitude, lng: currentLocation.longitude }),
+    [currentLocation.latitude, currentLocation.longitude]
+  )
 
-  // ── 2. "USE MY LOCATION" GEOLOCATION HANDLER ──
+  const userGps = useMemo(
+    () => (currentLocation.source === 'gps' ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null),
+    [currentLocation.source, currentLocation.latitude, currentLocation.longitude]
+  )
+
+  // ── 2. "USE MY CURRENT LOCATION" HANDLER ──
   const handleUseMyLocation = useCallback(() => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser.')
@@ -124,29 +152,42 @@ export default function NearbyOfficesPage() {
         const lat = position.coords.latitude
         const lng = position.coords.longitude
 
-        // Reverse geocode to get a readable local address name
+        // Recalculate distances for fallback offices
+        const updatedFallbacks = buildFallbackOffices(lat, lng, { lat, lng })
+        setOffices(updatedFallbacks)
+
         if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
           const geocoder = new window.google.maps.Geocoder()
           geocoder.geocode({ location: { lat, lng } }, (results, status) => {
             setIsLocating(false)
             let detectedName = 'Your Current Location'
+            let fullAddr = 'Coimbatore, Tamil Nadu, India'
+
             if (status === window.google.maps.GeocoderStatus.OK && results?.[0]) {
-              const sublocality = results[0].address_components.find(c => c.types.includes('sublocality') || c.types.includes('locality'))?.long_name
-              detectedName = sublocality ? `${sublocality}, Coimbatore` : results[0].formatted_address.split(',')[0]
+              const locality = results[0].address_components.find(
+                (c) => c.types.includes('sublocality') || c.types.includes('locality')
+              )?.long_name
+              detectedName = locality ? `${locality}, Coimbatore` : results[0].formatted_address.split(',')[0]
+              fullAddr = results[0].formatted_address
             }
+
             setCurrentLocation({
               name: detectedName,
-              lat,
-              lng,
+              address: fullAddr,
+              latitude: lat,
+              longitude: lng,
+              source: 'gps',
             })
-            toast.success(`📍 Centered around ${detectedName}`)
+            toast.success(`📍 Located near ${detectedName}`)
           })
         } else {
           setIsLocating(false)
           setCurrentLocation({
             name: 'Your Current Location',
-            lat,
-            lng,
+            address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+            latitude: lat,
+            longitude: lng,
+            source: 'gps',
           })
           toast.success('📍 Centered around your GPS location')
         }
@@ -154,28 +195,99 @@ export default function NearbyOfficesPage() {
       (error) => {
         setIsLocating(false)
         console.warn('Geolocation error:', error.message)
-        toast.error('Location permission denied. Keeping Kinathukadavu, Coimbatore as location.')
+        toast.error('Location permission denied. Keeping Kinathukadavu as default.')
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 10000 }
     )
   }, [])
 
-  // ── 3. RECEIVE PLACES FROM MAP COMPONENT ──
-  const handleOfficesLoaded = useCallback((loadedOffices: PlaceOffice[], loading: boolean, error: string | null) => {
-    setOffices(loadedOffices)
-    setIsLoadingPlaces(loading)
-    setPlacesError(error)
+  // ── 3. LIVE LOCATION TRACKING (watchPosition) ──
+  const handleToggleTracking = useCallback(() => {
+    if (isTracking) {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+        watchIdRef.current = null
+      }
+      setIsTracking(false)
+      toast.info('Live GPS tracking paused.')
+      return
+    }
+
+    if (!navigator.geolocation) {
+      toast.error('Geolocation tracking not supported.')
+      return
+    }
+
+    toast.info('Starting live GPS tracking...')
+    setIsTracking(true)
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+
+        // Only update if moved >= 150m to avoid unnecessary renders
+        const prev = lastTrackedPosRef.current
+        if (prev) {
+          const latDiff = Math.abs(prev.lat - lat)
+          const lngDiff = Math.abs(prev.lng - lng)
+          if (latDiff < 0.0015 && lngDiff < 0.0015) {
+            return
+          }
+        }
+
+        lastTrackedPosRef.current = { lat, lng }
+
+        setCurrentLocation((prevLoc) => ({
+          ...prevLoc,
+          latitude: lat,
+          longitude: lng,
+          source: 'gps',
+        }))
+      },
+      (error) => {
+        console.warn('GPS Watch error:', error.message)
+        setIsTracking(false)
+        toast.error('Location tracking error or permission denied.')
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+    )
+
+    watchIdRef.current = watchId
+  }, [isTracking])
+
+  // Cleanup tracking on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+      }
+    }
   }, [])
 
-  // ── 4. FILTERED OFFICES FOR RIGHT PANEL ──
+  // ── 4. RECEIVE PLACES FROM MAP COMPONENT ──
+  const handleOfficesLoaded = useCallback((loadedOffices: PlaceOffice[]) => {
+    if (loadedOffices && loadedOffices.length > 0) {
+      setOffices(loadedOffices)
+    }
+  }, [])
+
+  // ── 5. FILTERED & SORTED OFFICES FOR RIGHT PANEL ──
   const filteredOffices = useMemo(() => {
     return offices.filter((office) => {
-      const matchCat = selectedCategory === 'All' || office.category === selectedCategory
+      const matchCat =
+        selectedCategory === 'All' ||
+        office.category === selectedCategory ||
+        (selectedCategory === 'Taluk Office' && office.category.toLowerCase().includes('taluk')) ||
+        (selectedCategory === 'Panchayat' && office.category.toLowerCase().includes('panchayat')) ||
+        (selectedCategory === 'VAO' && office.category.toLowerCase().includes('vao'))
+
       const matchSearch =
         !searchQuery.trim() ||
         office.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         office.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
         office.category.toLowerCase().includes(searchQuery.toLowerCase())
+
       return matchCat && matchSearch
     })
   }, [offices, selectedCategory, searchQuery])
@@ -203,11 +315,10 @@ export default function NearbyOfficesPage() {
   }
 
   return (
-    <div className="space-y-6 pt-4 max-w-7xl mx-auto min-h-[calc(100vh-100px)] flex flex-col pb-12">
+    <div className="space-y-6 pt-4 max-w-7xl mx-auto min-h-[calc(100vh-100px)] flex flex-col pb-12 font-sans">
       
       {/* ── TOP HEADER & ACTION BAR ── */}
       <div className="bg-gradient-to-r from-[#0F766E] via-[#115E59] to-[#134E4A] rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden">
-        {/* Decorative background glow */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -217,26 +328,42 @@ export default function NearbyOfficesPage() {
                 <Compass className="w-5 h-5 text-teal-300" />
               </span>
               <span className="text-[10px] font-black uppercase tracking-widest text-teal-200 bg-teal-950/60 px-2.5 py-0.5 rounded-full border border-teal-500/30">
-                Citizen GIS Portal
+                Kinathukadavu Government GIS
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               Nearby Government Offices
             </h1>
             <p className="text-xs sm:text-sm text-teal-100/80 max-w-2xl leading-relaxed">
-              Find Taluk Offices, VAO Chambers, Town Panchayat Halls, E-Sevai Centers, Primary Health Centers, and Police Stations near you with real-time Google Maps directions.
+              Find Taluk Offices, Panchayat Union Offices, Sub-Registrar Offices, and Post Offices near you with exact GPS directions.
             </p>
           </div>
 
           {/* Action buttons (Use My Location & Radius Switcher) */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* GPS Locate Button */}
             <button
               onClick={handleUseMyLocation}
               disabled={isLocating}
               className="px-4 py-3 rounded-2xl bg-white text-[#0F766E] hover:bg-teal-50 text-xs font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              title="Detect GPS Location"
             >
               <Crosshair className={`w-4 h-4 text-[#0F766E] ${isLocating ? 'animate-spin' : ''}`} />
-              <span>{isLocating ? 'Detecting Location...' : 'Use My Location'}</span>
+              <span>{isLocating ? 'Detecting Location...' : 'Use My Current Location'}</span>
+            </button>
+
+            {/* Live Track Toggle Button */}
+            <button
+              onClick={handleToggleTracking}
+              className={`px-3.5 py-3 rounded-2xl text-xs font-extrabold shadow-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                isTracking
+                  ? 'bg-emerald-500 text-white animate-pulse'
+                  : 'bg-white/15 hover:bg-white/25 text-white border border-white/20'
+              }`}
+              title="Toggle Live Location Tracking"
+            >
+              {isTracking ? <LocateFixed className="w-4 h-4" /> : <LocateOff className="w-4 h-4 text-teal-200" />}
+              <span>{isTracking ? 'Tracking ON' : 'Track My Location'}</span>
             </button>
 
             {/* Radius Selector */}
@@ -251,7 +378,7 @@ export default function NearbyOfficesPage() {
                       : 'text-white/80 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  {r.value / 1000} km
+                  {r.label}
                 </button>
               ))}
             </div>
@@ -269,7 +396,7 @@ export default function NearbyOfficesPage() {
 
           <div className="flex items-center gap-2 text-[11px] text-teal-200/90 font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>Real Google Places GIS Active</span>
+            <span>{currentLocation.source === 'gps' ? 'Live GPS Active' : 'Kinathukadavu Center Active'}</span>
           </div>
         </div>
       </div>
@@ -278,30 +405,33 @@ export default function NearbyOfficesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-[620px]">
         
         {/* ── LEFT COLUMN (7 COLS): GOOGLE MAP VIEW ── */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl p-3 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-md flex flex-col min-h-[420px] lg:min-h-full">
-          <div className="w-full h-full flex-1 rounded-2xl overflow-hidden relative min-h-[380px]">
-            <NearbyOfficesMap
-              apiKey={apiKey}
-              center={{ lat: currentLocation.lat, lng: currentLocation.lng }}
-              locationName={currentLocation.name}
-              radiusMeters={radiusMeters}
-              selectedCategory={selectedCategory}
-              searchQuery={searchQuery}
-              selectedOffice={selectedOffice}
-              onOfficesLoaded={handleOfficesLoaded}
-              onOfficeSelect={setSelectedOffice}
-            />
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl p-3 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-md flex flex-col min-h-[440px] lg:min-h-full">
+          <div className="w-full h-full flex-1 rounded-2xl overflow-hidden relative min-h-[400px]">
+            <MapErrorBoundary>
+              <NearbyOfficesMap
+                apiKey={apiKey}
+                center={mapCenter}
+                locationName={currentLocation.name}
+                radiusMeters={radiusMeters}
+                selectedCategory={selectedCategory}
+                searchQuery={searchQuery}
+                selectedOffice={selectedOffice}
+                userGpsLocation={userGps}
+                onOfficesLoaded={handleOfficesLoaded}
+                onOfficeSelect={setSelectedOffice}
+              />
+            </MapErrorBoundary>
           </div>
 
           {/* Map Legend */}
           <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 px-1">
             <span className="font-bold text-slate-700 dark:text-slate-200">Markers:</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#0F766E]" /> Taluk / Revenue</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#15803D]" /> VAO / Panchayat</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#7C3AED]" /> E-Sevai</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]" /> Hospital / PHC</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#1E3A8A]" /> Police</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#0F766E]" /> Taluk Office</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#0369A1]" /> Panchayat / Union</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#334155]" /> Govt Office</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#D97706]" /> Post Office</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]" /> Hospital</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#1E3A8A]" /> Police</span>
           </div>
         </div>
 
@@ -316,7 +446,7 @@ export default function NearbyOfficesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search VAO, Taluk Office, E-Sevai, Hospital..."
+                placeholder="Search VAO, Taluk Office, Panchayat, Post Office..."
                 className="w-full pl-10 pr-9 py-2.5 text-xs font-semibold rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0F766E]/20"
               />
               {searchQuery && (
@@ -351,29 +481,15 @@ export default function NearbyOfficesPage() {
               <p className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
                 <span>Near {currentLocation.name}</span>
               </p>
-              <span className="text-[11px] font-bold text-[#0F766E] dark:text-teal-400 bg-teal-50 dark:bg-teal-950/50 px-2 py-0.5 rounded-md border border-teal-200 dark:border-teal-900/50">
-                {isLoadingPlaces ? 'Searching...' : `${filteredOffices.length} offices found`}
+              <span className="text-[11px] font-bold text-[#0F766E] dark:text-teal-400 bg-teal-50 dark:bg-teal-950/50 px-2.5 py-0.5 rounded-md border border-teal-200 dark:border-teal-900/50">
+                {`${filteredOffices.length} offices found`}
               </span>
             </div>
           </div>
 
           {/* Office Cards List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3.5 max-h-[560px]">
-            {isLoadingPlaces ? (
-              // Loading Skeleton State
-              <div className="space-y-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 animate-pulse space-y-3">
-                    <div className="flex justify-between items-center">
-                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded-md w-40" />
-                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded-full w-14" />
-                    </div>
-                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-md w-56" />
-                    <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-xl w-full" />
-                  </div>
-                ))}
-              </div>
-            ) : filteredOffices.length === 0 ? (
+          <div className="flex-1 overflow-y-auto p-4 space-y-3.5 max-h-[580px]">
+            {filteredOffices.length === 0 ? (
               // Empty State with Radius Expansion options
               <div className="py-12 px-4 text-center space-y-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-800/20">
                 <Building2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
@@ -411,6 +527,11 @@ export default function NearbyOfficesPage() {
               // Real Places Cards
               filteredOffices.map((office) => {
                 const isSelected = selectedOffice?.id === office.id
+                const originQuery =
+                  currentLocation.source === 'gps'
+                    ? `&origin=${currentLocation.latitude},${currentLocation.longitude}`
+                    : ''
+
                 return (
                   <motion.div
                     key={office.id}
@@ -460,7 +581,7 @@ export default function NearbyOfficesPage() {
                             ? office.working_hours
                             : office.isOpenNow !== undefined
                             ? office.isOpenNow
-                              ? '🟢 Open Now (Govt Timings: 10:00 AM – 5:00 PM)'
+                              ? '🟢 Open Now (Govt Timings: 10:00 AM – 5:45 PM)'
                               : '🔴 Closed Now'
                             : 'Information unavailable'}
                         </span>
@@ -475,7 +596,9 @@ export default function NearbyOfficesPage() {
                     {/* Action Button: Get Directions */}
                     <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
                       <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${office.lat},${office.lng}${office.place_id ? `&destination_place_id=${office.place_id}` : ''}`}
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${office.lat},${office.lng}${
+                          office.place_id ? `&destination_place_id=${office.place_id}` : ''
+                        }${originQuery}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}

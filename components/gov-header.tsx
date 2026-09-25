@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useLanguage } from '@/components/providers/language-provider'
+import { useScreenReader } from '@/components/providers/screen-reader-provider'
 import {
   ShieldCheck, Volume2, Type, CircleUserRound, Share2, X,
   Bot, ArrowRight, Home, FileText, Landmark, Bell, PanelLeft
@@ -16,6 +17,7 @@ import { FaXTwitter } from 'react-icons/fa6'
 export default function GovHeader() {
   const { user, profile, logout } = useAuth()
   const { language, setLanguage, t } = useLanguage()
+  const { isActive: isScreenReaderActive, isSpeaking, toggleScreenReader } = useScreenReader()
   const pathname = usePathname()
 
   const [textSize, setTextSizeState] = useState<'sm' | 'md' | 'lg'>('md')
@@ -51,10 +53,10 @@ export default function GovHeader() {
   }
 
   const NAV_LINKS = [
-    { href: '/dashboard', label: language === 'en' ? 'Home' : 'முகப்பு', icon: Home },
-    { href: '/schemes', label: language === 'en' ? 'Latest Schemes' : 'திட்டங்கள்', icon: FileText },
-    { href: '/services', label: language === 'en' ? 'Village Services' : 'சேவைகள்', icon: Landmark },
-    { href: '/announcements', label: language === 'en' ? 'Announcements' : 'அறிவிப்புகள்', icon: Bell },
+    { href: '/dashboard', label: t('home'), icon: Home },
+    { href: '/schemes', label: t('welfareSchemes'), icon: FileText },
+    { href: '/services', label: t('services'), icon: Landmark },
+    { href: '/announcements', label: t('announcements'), icon: Bell },
     { href: '/ai-assistant', label: 'GramSeva AI', icon: Bot, highlight: true },
   ]
 
@@ -75,7 +77,9 @@ export default function GovHeader() {
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-3.5 h-3.5 text-[#0F766E] shrink-0" />
             <span className="uppercase tracking-wider font-bold hidden sm:inline text-slate-800 dark:text-slate-200 text-[10px]">
-              Government of Tamil Nadu • Rural Development &amp; Panchayat Raj
+              {language === 'en'
+                ? 'Government of Tamil Nadu • Rural Development & Panchayat Raj'
+                : 'தமிழ்நாடு அரசு • ஊரக வளர்ச்சி மற்றும் ஊராட்சித் துறை'}
             </span>
             <span className="sm:hidden font-extrabold text-[#0F766E] text-[10px]">
               {language === 'en' ? 'Govt of TN • GramSeva AI' : 'தமிழ்நாடு அரசு • கிராமசேவா'}
@@ -86,11 +90,16 @@ export default function GovHeader() {
           <div className="flex items-center gap-2.5">
             {/* Screen Reader */}
             <button
-              onClick={() => alert('Screen reader utility active.')}
-              className="h-7 hidden md:flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-[#0F766E] px-3 gap-1.5 transition-all text-[10px] font-semibold cursor-pointer"
+              onClick={toggleScreenReader}
+              className={`h-7 hidden md:flex items-center justify-center rounded-full border px-3 gap-1.5 transition-all text-[10px] font-extrabold cursor-pointer ${
+                isScreenReaderActive
+                  ? 'bg-teal-600 text-white border-teal-700 shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-[#0F766E]'
+              }`}
+              title={isScreenReaderActive ? 'Disable Screen Reader' : 'Enable Screen Reader Voice Access'}
             >
-              <Volume2 className="w-3 h-3" />
-              <span>{t('screenReader')}</span>
+              <Volume2 className={`w-3 h-3 ${isSpeaking ? 'animate-bounce text-yellow-300' : ''}`} />
+              <span>{isScreenReaderActive ? (language === 'ta' ? 'குரல் வாசிப்பு: ஆன்' : 'Screen Reader: ON') : t('screenReader')}</span>
             </button>
 
             {/* Font Sizer */}
@@ -110,17 +119,19 @@ export default function GovHeader() {
               ))}
             </div>
 
-            {/* Language Selector */}
+            {/* Language Selector: English | தமிழ் */}
             <div className="h-7 flex items-center bg-slate-100 dark:bg-slate-800 rounded-full px-1 border border-slate-200 dark:border-slate-700">
               {([
-                { code: 'en', label: 'EN' },
-                { code: 'ta', label: 'குடிமி' },
-              ] as { code: 'en' | 'ta' | 'hi'; label: string }[]).map(({ code, label }) => (
+                { code: 'en', label: 'English' },
+                { code: 'ta', label: 'தமிழ்' },
+              ] as const).map(({ code, label }) => (
                 <button
                   key={code}
                   onClick={() => setLanguage(code)}
                   className={`h-5 px-2.5 rounded-full text-[9px] font-extrabold transition-all cursor-pointer ${
-                    language === code ? 'bg-[#0F766E] text-white' : 'text-slate-600 dark:text-slate-300 hover:text-[#0F766E]'
+                    language === code
+                      ? 'bg-[#0F766E] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-[#0F766E]'
                   }`}
                 >
                   {label}
@@ -135,11 +146,11 @@ export default function GovHeader() {
 
           {/* Logo */}
           <div className="flex items-center gap-3">
-            {/* Sidebar Slide / Toggle Button (Desktop & Mobile) */}
+            {/* Sidebar Slide / Toggle Button */}
             <button
               onClick={() => window.dispatchEvent(new Event('toggle-sidebar'))}
               className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-[#0F766E] hover:border-[#0F766E]/40 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95 flex-shrink-0"
-              title="Toggle Sidebar Navigation (Slide Button)"
+              title={language === 'en' ? 'Toggle Navigation Menu' : 'வழிசெலுத்தல் மெனு'}
             >
               <PanelLeft className="w-4 h-4 text-[#0F766E] dark:text-teal-400" />
             </button>
@@ -156,11 +167,11 @@ export default function GovHeader() {
                     GramSeva <span className="text-[#16A34A]">AI</span>
                   </span>
                   <span className="text-[8px] font-black uppercase bg-teal-100 dark:bg-teal-900/50 text-[#0F766E] dark:text-teal-300 px-1.5 py-0.5 rounded border border-teal-200 dark:border-teal-800 leading-none">
-                    Govt Portal
+                    {language === 'en' ? 'Govt Portal' : 'அரசு தளம்'}
                   </span>
                 </div>
                 <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                  Digital India Citizen Services
+                  {language === 'en' ? 'Digital Citizen Services' : 'டிஜிட்டல் குடிமக்கள் சேவைகள்'}
                 </p>
               </div>
             </Link>
@@ -197,7 +208,7 @@ export default function GovHeader() {
                 href={profile?.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
                 className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-[#0F766E] hover:bg-[#0d645e] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer hover:-translate-y-0.5"
               >
-                <span>{profile?.role === 'admin' ? 'BDO Portal' : language === 'en' ? 'My Dashboard' : 'என் தகவல்'}</span>
+                <span>{profile?.role === 'admin' ? t('bdoPortal') : t('myDashboard')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             ) : (
@@ -205,7 +216,7 @@ export default function GovHeader() {
                 href="/login"
                 className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-[#0F766E] hover:bg-[#0d645e] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer hover:-translate-y-0.5"
               >
-                {language === 'en' ? 'Citizen Login' : 'உள்நுழை'}
+                {t('citizenLogin')}
               </Link>
             )}
 
@@ -214,7 +225,7 @@ export default function GovHeader() {
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-[#0F766E] hover:border-[#0F766E]/30 flex items-center justify-center transition-all cursor-pointer hover:scale-105"
-                title="Profile"
+                title={t('myProfile')}
               >
                 <CircleUserRound className="w-4.5 h-4.5" />
               </button>
@@ -231,47 +242,56 @@ export default function GovHeader() {
                     {user ? (
                       <>
                         <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
-                          <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Logged In As</p>
-                          <p className="font-black text-slate-900 dark:text-white truncate mt-0.5">{profile?.name || user.email}</p>
-                          <p className="text-[9px] text-[#0F766E] font-bold capitalize mt-0.5">{profile?.role === 'admin' ? 'Administrator' : 'Citizen'}</p>
+                          <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">
+                            {language === 'en' ? 'Logged In As' : 'உள்நுழைந்துள்ள கணக்கு'}
+                          </p>
+                          <p className="font-black text-slate-900 dark:text-white truncate mt-0.5">
+                            {profile?.name || user.email}
+                          </p>
+                          <p className="text-[9px] text-[#0F766E] font-bold capitalize mt-0.5">
+                            {profile?.role === 'admin'
+                              ? (language === 'en' ? 'BDO Administrator' : 'BDO நிர்வாகி')
+                              : (language === 'en' ? 'Citizen' : 'குடிமகன்')}
+                          </p>
                         </div>
                         <Link
                           href={profile?.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
                           onClick={() => setProfileOpen(false)}
                           className="block px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#0F766E] transition-all"
                         >
-                          Dashboard
+                          {t('dashboard')}
                         </Link>
                         <Link
                           href={profile?.role === 'admin' ? '/admin/dashboard?tab=settings' : '/profile'}
                           onClick={() => setProfileOpen(false)}
                           className="block px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#0F766E] transition-all"
                         >
-                          My Profile
-                        </Link>
-                        <Link
-                          href={profile?.role === 'admin' ? '/admin/dashboard?tab=settings' : '/profile'}
-                          onClick={() => setProfileOpen(false)}
-                          className="block px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#0F766E] transition-all"
-                        >
-                          Settings
+                          {t('myProfile')}
                         </Link>
                         <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
                           <button
                             onClick={() => { setProfileOpen(false); logout() }}
                             className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 font-bold transition-all cursor-pointer"
                           >
-                            Logout
+                            {t('signOut')}
                           </button>
                         </div>
                       </>
                     ) : (
                       <>
-                        <Link href="/login" onClick={() => setProfileOpen(false)} className="block px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#0F766E] transition-all">
-                          Resident Login
+                        <Link
+                          href="/login"
+                          onClick={() => setProfileOpen(false)}
+                          className="block px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#0F766E] transition-all"
+                        >
+                          {t('citizenLogin')}
                         </Link>
-                        <Link href="/login" onClick={() => setProfileOpen(false)} className="block px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#0F766E] transition-all">
-                          Register Account
+                        <Link
+                          href="/login"
+                          onClick={() => setProfileOpen(false)}
+                          className="block px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#0F766E] transition-all"
+                        >
+                          {t('registerAccount')}
                         </Link>
                       </>
                     )}
@@ -284,7 +304,7 @@ export default function GovHeader() {
             <button
               onClick={() => setSocialOpen(true)}
               className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-[#0F766E] hover:border-[#0F766E]/30 hidden sm:flex items-center justify-center transition-all cursor-pointer hover:scale-105"
-              title="Official Social Channels"
+              title={language === 'en' ? 'Official Social Channels' : 'அரசு சமூக வலைத்தளங்கள்'}
             >
               <Share2 className="w-3.5 h-3.5" />
             </button>
@@ -312,7 +332,7 @@ export default function GovHeader() {
             >
               <div className="flex items-center justify-between border-b border-border pb-3">
                 <h3 className="font-extrabold text-sm flex items-center gap-1.5 text-foreground">
-                  <Share2 className="w-4 h-4 text-[#0F766E]" /> Official Channels &amp; Share
+                  <Share2 className="w-4 h-4 text-[#0F766E]" /> {language === 'en' ? 'Official Channels & Share' : 'அதிகாரப்பூர்வ இணைப்புகள்'}
                 </h3>
                 <button
                   onClick={() => setSocialOpen(false)}

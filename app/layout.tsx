@@ -3,6 +3,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { AuthProvider } from '@/components/providers/auth-provider'
 import { LanguageProvider } from '@/components/providers/language-provider'
+import { ScreenReaderProvider } from '@/components/providers/screen-reader-provider'
 import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
@@ -37,22 +38,22 @@ export default function RootLayout({
       </head>
       <body className="gov-watermark">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-
           <LanguageProvider>
-            <AuthProvider>
-
-              {children}
-              <Toaster
-                position="bottom-right"
-                richColors
-                closeButton
-                toastOptions={{
-                  style: {
-                    borderRadius: '12px',
-                  },
-                }}
-              />
-            </AuthProvider>
+            <ScreenReaderProvider>
+              <AuthProvider>
+                {children}
+                <Toaster
+                  position="bottom-right"
+                  richColors
+                  closeButton
+                  toastOptions={{
+                    style: {
+                      borderRadius: '12px',
+                    },
+                  }}
+                />
+              </AuthProvider>
+            </ScreenReaderProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

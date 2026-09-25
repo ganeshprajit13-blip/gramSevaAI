@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useLanguage } from '@/components/providers/language-provider'
+import { useScreenReader } from '@/components/providers/screen-reader-provider'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, ChevronRight, ChevronLeft, FileText, Coins, Users, MapPin, 
@@ -53,6 +54,7 @@ type UserPersona = 'All' | 'Women' | 'Farmers' | 'Students' | 'Senior Citizens' 
 export default function HomePage() {
   const { user, profile } = useAuth()
   const { t, language, setLanguage } = useLanguage()
+  const { isActive: isScreenReaderActive, isSpeaking, toggleScreenReader } = useScreenReader()
   const router = useRouter()
 
   // Data Stores State
@@ -289,11 +291,16 @@ export default function HomePage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => alert('Screen reader utility active.')}
-              className="h-8 hidden md:flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-[#0F766E] px-3 gap-1.5 transition-all text-xs font-semibold cursor-pointer"
+              onClick={toggleScreenReader}
+              className={`h-8 hidden md:flex items-center justify-center rounded-full border px-3.5 gap-1.5 transition-all text-xs font-bold cursor-pointer ${
+                isScreenReaderActive
+                  ? 'bg-teal-600 text-white border-teal-700 shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-[#0F766E]'
+              }`}
+              title={isScreenReaderActive ? 'Disable Screen Reader' : 'Enable Screen Reader Voice Access'}
             >
-              <Volume2 className="w-3.5 h-3.5" />
-              <span>{t('screenReader')}</span>
+              <Volume2 className={`w-3.5 h-3.5 ${isSpeaking ? 'animate-bounce text-yellow-300' : ''}`} />
+              <span>{isScreenReaderActive ? (language === 'ta' ? 'குரல் வாசிப்பு: ஆன்' : 'Screen Reader: ON') : t('screenReader')}</span>
             </button>
 
             {/* Font Sizer */}

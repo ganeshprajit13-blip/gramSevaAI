@@ -15,13 +15,6 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
-const features = [
-  { icon: Zap, title: 'AI-Powered Scheme Matching', desc: 'Instant eligibility verification for rural households.' },
-  { icon: Shield, title: 'Official & Cyber Secure', desc: 'Compliant with state data privacy and security standards.' },
-  { icon: MapPin, title: 'Unified Village Services', desc: 'Apply online for land patta, birth, and utility certificates.' },
-  { icon: Users, title: 'Direct Benefit Transfer', desc: 'Transparent welfare assistance straight to bank accounts.' },
-]
-
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [role, setRole] = useState<'citizen' | 'admin'>('citizen')
@@ -33,6 +26,29 @@ export default function LoginPage() {
   const router = useRouter()
   const { loginWithCredentials } = useAuth()
   const { t, language, setLanguage } = useLanguage()
+
+  const features = [
+    {
+      icon: Zap,
+      title: language === 'ta' ? 'AI நலத்திட்டப் பொருத்தம்' : 'AI-Powered Scheme Matching',
+      desc: language === 'ta' ? 'கிராமப்புற குடும்பங்களுக்கான உடனடி தகுதி சரிபார்ப்பு.' : 'Instant eligibility verification for rural households.'
+    },
+    {
+      icon: Shield,
+      title: language === 'ta' ? 'அதிகாரப்பூர்வ & பாதுகாப்பானது' : 'Official & Cyber Secure',
+      desc: language === 'ta' ? 'அரசு தரவு பாதுகாப்பு விதிகளுக்கு உட்பட்டது.' : 'Compliant with state data privacy and security standards.'
+    },
+    {
+      icon: MapPin,
+      title: language === 'ta' ? 'ஒருங்கிணைந்த கிராம சேவைகள்' : 'Unified Village Services',
+      desc: language === 'ta' ? 'பட்டா, பிறப்பு மற்றும் குடிமை சான்றிதழ்களுக்கு விண்ணப்பிக்கலாம்.' : 'Apply online for land patta, birth, and utility certificates.'
+    },
+    {
+      icon: Users,
+      title: language === 'ta' ? 'நேரடி நலத்திட்ட பரிமாற்றம்' : 'Direct Benefit Transfer',
+      desc: language === 'ta' ? 'நேரடியாக வங்கிக் கணக்கில் நலத்திட்ட உதவி.' : 'Transparent welfare assistance straight to bank accounts.'
+    },
+  ]
 
   const generateCaptcha = () => {
     const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz'
@@ -51,14 +67,14 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signInWithPopup(auth, googleProvider)
-      toast.success('Signed in successfully!')
+      toast.success(t('loginSuccess'))
       router.push('/dashboard')
     } catch (err: unknown) {
       const errorCode = (err as { code?: string })?.code
       if (errorCode === 'auth/popup-closed-by-user') {
-        toast.info('Sign-in cancelled')
+        toast.info(language === 'ta' ? 'உள்நுழைவு ரத்து செய்யப்பட்டது' : 'Sign-in cancelled')
       } else {
-        toast.error('Sign-in failed. Please try again.')
+        toast.error(t('loginFailed'))
       }
     } finally {
       setLoading(false)
@@ -68,15 +84,15 @@ export default function LoginPage() {
   const handleCredentialsLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!username.trim()) {
-      toast.error('Please enter a username or email')
+      toast.error(language === 'ta' ? 'பயனர் பெயரை உள்ளிடவும்' : 'Please enter a username or email')
       return
     }
     if (!password.trim()) {
-      toast.error('Please enter your password')
+      toast.error(language === 'ta' ? 'கடவுச்சொல்லை உள்ளிடவும்' : 'Please enter your password')
       return
     }
     if (role === 'admin' && captchaInput !== captchaCode) {
-      toast.error('Invalid Captcha security code')
+      toast.error(language === 'ta' ? 'பாதுகாப்புக் குறியீடு (Captcha) தவறானது' : 'Invalid Captcha security code')
       generateCaptcha()
       setCaptchaInput('')
       return
@@ -86,17 +102,17 @@ export default function LoginPage() {
     try {
       const success = await loginWithCredentials(username, password)
       if (success) {
-        toast.success('Signed in successfully!')
+        toast.success(t('loginSuccess'))
         if (role === 'admin' || username === 'block_development_officer' || username === 'bdo@gmail.com') {
           router.push('/admin/dashboard')
         } else {
           router.push('/dashboard')
         }
       } else {
-        toast.error('Sign-in failed. Please try again.')
+        toast.error(t('loginFailed'))
       }
     } catch (err: any) {
-      toast.error(err.message || 'Incorrect credentials')
+      toast.error(err.message || t('loginFailed'))
     } finally {
       setLoading(false)
     }
@@ -138,11 +154,11 @@ export default function LoginPage() {
                   GramSeva <span className="text-[#059669]">AI</span>
                 </h1>
                 <span className="text-[9px] font-black uppercase bg-[#EAF8EF] dark:bg-green-900/50 text-[#14532d] dark:text-green-300 px-1.5 py-0.5 rounded border border-[#A7DCBB] dark:border-green-800">
-                  Citizen Login
+                  {language === 'ta' ? 'குடிமக்கள் உள்நுழைவு' : 'Citizen Login'}
                 </span>
               </div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                Government of Tamil Nadu • Citizen Portal
+                {language === 'ta' ? 'தமிழ்நாடு அரசு • அதிகாரப்பூர்வ தளம்' : 'Government of Tamil Nadu • Citizen Portal'}
               </p>
             </div>
           </Link>
@@ -160,7 +176,7 @@ export default function LoginPage() {
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
-                <span>Citizen</span>
+                <span>{language === 'ta' ? 'குடிமகன்' : 'Citizen'}</span>
               </button>
               <button
                 type="button"
@@ -172,7 +188,7 @@ export default function LoginPage() {
                 }`}
               >
                 <Building2 className="w-3.5 h-3.5" />
-                <span>BDO Officer</span>
+                <span>{language === 'ta' ? 'BDO அதிகாரி' : 'BDO Officer'}</span>
               </button>
             </div>
 
@@ -182,7 +198,7 @@ export default function LoginPage() {
                 onClick={() => setLanguage('en')}
                 className={`h-6 px-3 rounded-full text-[10px] font-extrabold transition-all cursor-pointer ${language === 'en' ? 'bg-[#059669] text-white' : 'text-[#14532d] dark:text-slate-300 hover:bg-[#D1F0DC]'}`}
               >
-                EN
+                English
               </button>
               <button
                 onClick={() => setLanguage('ta')}
@@ -198,7 +214,7 @@ export default function LoginPage() {
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-slate-800 border border-[#C6EDD5] dark:border-slate-700 rounded-xl text-xs font-bold text-[#14532d] dark:text-slate-200 hover:bg-[#EAF8EF] hover:border-[#059669] transition-all shadow-xs"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Home</span>
+              <span>{t('backToHome')}</span>
             </Link>
           </div>
         </div>
@@ -211,13 +227,19 @@ export default function LoginPage() {
         <div className="w-full lg:w-1/2 space-y-6">
           <div className="space-y-3">
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#EAF8EF] dark:bg-green-900/20 text-[#14532d] dark:text-green-300 border border-[#A7DCBB] dark:border-green-800 text-xs font-extrabold uppercase tracking-wider">
-              <ShieldCheck className="w-4 h-4 text-[#059669]" /> Official Rural Welfare SSO
+              <ShieldCheck className="w-4 h-4 text-[#059669]" /> {language === 'ta' ? 'அதிகாரப்பூர்வ ஊரக நலத்திட்ட தளம்' : 'Official Rural Welfare SSO'}
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-4.5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-              Access Direct Government Benefits <span className="text-[#059669] dark:text-green-400">Without Middlemen</span>
+              {language === 'ta' ? (
+                <>இடைத்தரகர்கள் இன்றி <span className="text-[#059669] dark:text-green-400">நேரடி அரசு நன்மைகளைப்</span> பெறுங்கள்</>
+              ) : (
+                <>Access Direct Government Benefits <span className="text-[#059669] dark:text-green-400">Without Middlemen</span></>
+              )}
             </h2>
             <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed max-w-lg font-medium">
-              GramSeva AI connects rural citizens directly with state welfare departments. Sign in to track certificate applications, discover personalized schemes, or log village complaints.
+              {language === 'ta'
+                ? 'கிராமசேவா AI தளம் மூலம் அரசின் நலத்திட்டங்களை நேரடியாக அறிந்துகொள்ளுங்கள், சான்றிதழ்களுக்கு விண்ணப்பியுங்கள் மற்றும் புகார்களைப் பதிவு செய்யுங்கள்.'
+                : 'GramSeva AI connects rural citizens directly with state welfare departments. Sign in to track certificate applications, discover personalized schemes, or log village complaints.'}
             </p>
           </div>
 
@@ -241,7 +263,7 @@ export default function LoginPage() {
 
           <div className="pt-2 flex items-center gap-2 text-xs font-bold text-[#14532d]/70 dark:text-slate-400">
             <Shield className="w-4 h-4 text-[#059669]" />
-            <span>Encrypted End-to-End • Compliant with State Digital Standards</span>
+            <span>{language === 'ta' ? 'முழுமையான தரவுப் பாதுகாப்பு • தமிழ்நாடு அரசு வழிகாட்டுதல்களுக்கு உட்பட்டது' : 'Encrypted End-to-End • Compliant with State Digital Standards'}</span>
           </div>
         </div>
 
@@ -265,7 +287,7 @@ export default function LoginPage() {
                 }`}
               >
                 <User className="w-4 h-4" />
-                Citizen Portal Sign-In
+                {t('citizenRole')}
               </button>
 
               <button
@@ -278,7 +300,7 @@ export default function LoginPage() {
                 }`}
               >
                 <Building2 className="w-4 h-4" />
-                BDO / Officer SSO
+                {t('bdoRole')}
               </button>
 
               {/* Animated Sliding Button Indicator */}
@@ -304,13 +326,17 @@ export default function LoginPage() {
                 /* CITIZEN LOGIN FORM */
                 <form onSubmit={handleCredentialsLogin} className="space-y-4">
                   <div>
-                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Resident Sign-In</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Log in to view eligible schemes and track certificate status</p>
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">{t('citizenRole')}</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {language === 'ta'
+                        ? 'தகுதியான திட்டங்களைக் காண மற்றும் சான்றிதழ் நிலையை அறிய உள்நுழைக'
+                        : 'Log in to view eligible schemes and track certificate status'}
+                    </p>
                   </div>
 
                   <div className="space-y-1">
                     <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">
-                      Citizen Username / Email
+                      {t('usernameLabel')}
                     </label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -318,7 +344,7 @@ export default function LoginPage() {
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Enter your username or email"
+                        placeholder={language === 'ta' ? 'பயனர் பெயர் அல்லது தொலைபேசி எண்ணை உள்ளிடவும்' : 'Enter your username or email'}
                         disabled={loading}
                         className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-white dark:bg-slate-950 border border-[#A7DCBB] dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] font-medium transition-all"
                       />
@@ -328,14 +354,14 @@ export default function LoginPage() {
                   <div className="space-y-1">
                     <div className="flex justify-between items-center">
                       <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">
-                        Security Password
+                        {t('passwordLabel')}
                       </label>
                       <a
                         href="#"
-                        onClick={(e) => { e.preventDefault(); toast.info('Demo Mode: Any password is accepted for resident login.'); }}
+                        onClick={(e) => { e.preventDefault(); toast.info(language === 'ta' ? 'மாதிரி முறை: எந்த கடவுச்சொல்லையும் பயன்படுத்தலாம்.' : 'Demo Mode: Any password is accepted for resident login.'); }}
                         className="text-[10px] text-[#059669] font-bold hover:underline"
                       >
-                        Forgot Password?
+                        {language === 'ta' ? 'கடவுச்சொல் மறந்துவிட்டதா?' : 'Forgot Password?'}
                       </a>
                     </div>
                     <div className="relative">
@@ -344,7 +370,7 @@ export default function LoginPage() {
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
+                        placeholder={language === 'ta' ? 'கடவுச்சொல்லை உள்ளிடவும்' : 'Enter your password'}
                         disabled={loading}
                         className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl bg-white dark:bg-slate-950 border border-[#A7DCBB] dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#059669]/20 focus:border-[#059669] font-medium transition-all"
                       />
@@ -368,17 +394,17 @@ export default function LoginPage() {
                     ) : (
                       <LogIn className="w-4 h-4" />
                     )}
-                    <span>{loading ? 'Authenticating...' : 'Sign In to Citizen Portal'}</span>
+                    <span>{loading ? t('loading') : t('loginButton')}</span>
                   </button>
 
                   <div className="p-3 bg-[#EAF8EF] dark:bg-green-950/40 border border-[#A7DCBB] dark:border-green-900 rounded-xl text-[11px] text-[#14532d] dark:text-green-300 font-semibold space-y-0.5">
-                    <span className="font-extrabold block">💡 Instant Demo Sign-In:</span>
-                    <span>Enter any sample username &amp; password. Account profile will be generated automatically.</span>
+                    <span className="font-extrabold block">💡 {t('demoCredentialsTitle')}:</span>
+                    <span>{language === 'ta' ? 'மாதிரி பயனர் பெயர் மற்றும் கடவுச்சொல்லை உள்ளிட்டு நேரடியாக உள்நுழையலாம்.' : 'Enter any sample username & password. Account profile will be generated automatically.'}</span>
                   </div>
 
                   <div className="relative flex py-1 items-center justify-center">
                     <div className="flex-grow border-t border-slate-200 dark:border-slate-800" />
-                    <span className="flex-shrink mx-3 text-slate-400 text-[10px] uppercase font-bold">Or</span>
+                    <span className="flex-shrink mx-3 text-slate-400 text-[10px] uppercase font-bold">{language === 'ta' ? 'அல்லது' : 'Or'}</span>
                     <div className="flex-grow border-t border-slate-200 dark:border-slate-800" />
                   </div>
 
@@ -395,7 +421,7 @@ export default function LoginPage() {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
-                    <span>Continue with Google</span>
+                    <span>{language === 'ta' ? 'Google கணக்கு மூலம் தொடரவும்' : 'Continue with Google'}</span>
                   </button>
                 </form>
               ) : (
@@ -415,8 +441,8 @@ export default function LoginPage() {
                         <img src="/tn-emblem.svg" alt="TN Emblem" className="w-7 h-7 object-contain" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-xs text-white tracking-wide">Government of Tamil Nadu</h4>
-                        <p className="text-[9px] text-green-200 font-semibold uppercase tracking-[0.15em] mt-0.5">BDO Nodal Officer — Secure SSO</p>
+                        <h4 className="font-bold text-xs text-white tracking-wide">{t('govOfTN')}</h4>
+                        <p className="text-[9px] text-green-200 font-semibold uppercase tracking-[0.15em] mt-0.5">{language === 'ta' ? 'BDO வட்டார வளர்ச்சி அலுவலர் SSO' : 'BDO Nodal Officer — Secure SSO'}</p>
                       </div>
                       <div className="ml-auto">
                         <span className="text-[8px] font-bold uppercase bg-[#FF9933]/20 text-[#FF9933] border border-[#FF9933]/30 px-2 py-1 rounded tracking-wider">OFFICIAL</span>
@@ -427,7 +453,7 @@ export default function LoginPage() {
                   {/* Officer ID */}
                   <div className="space-y-1">
                     <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Officer ID / Username
+                      {t('usernameLabel')}
                     </label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -444,7 +470,7 @@ export default function LoginPage() {
                   {/* Officer Password */}
                   <div className="space-y-1">
                     <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Officer Security Password
+                      {t('passwordLabel')}
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -468,7 +494,7 @@ export default function LoginPage() {
                   {/* Captcha */}
                   <div className="space-y-1.5">
                     <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      Security Verification (Captcha)
+                      {t('captchaLabel')}
                     </label>
                     <div className="flex items-center gap-3">
                       <div className="bg-[#14532d]/8 dark:bg-green-950/40 border border-[#14532d]/20 dark:border-green-900/50 px-4 py-2 rounded-xl font-mono font-bold tracking-widest text-sm text-[#14532d] dark:text-green-300 line-through decoration-[#14532d]/40 italic select-none">
@@ -479,14 +505,14 @@ export default function LoginPage() {
                         onClick={generateCaptcha}
                         className="text-[10px] text-[#14532d] dark:text-green-400 hover:underline font-bold"
                       >
-                        Refresh Code
+                        {t('refreshCaptcha')}
                       </button>
                     </div>
                     <input
                       type="text"
                       value={captchaInput}
                       onChange={(e) => setCaptchaInput(e.target.value)}
-                      placeholder="Enter the 5 characters above"
+                      placeholder={language === 'ta' ? 'மேலே உள்ள 5 குறியீட்டை உள்ளிடவும்' : 'Enter the 5 characters above'}
                       disabled={loading}
                       className="w-full px-3 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#14532d]/30 focus:border-[#14532d] transition-all"
                     />
@@ -503,12 +529,12 @@ export default function LoginPage() {
                     ) : (
                       <LogIn className="w-4 h-4" />
                     )}
-                    <span>{loading ? 'Securing Session...' : 'Authenticate BDO Officer ID'}</span>
+                    <span>{loading ? t('loading') : t('loginButton')}</span>
                   </button>
 
                   {/* Pre-filled hint */}
                   <div className="p-3 bg-[#14532d]/[0.06] dark:bg-green-950/30 border border-[#14532d]/20 dark:border-green-900/40 rounded-xl text-[10px] text-[#14532d] dark:text-green-300 font-mono">
-                    <span className="font-bold block mb-0.5">🔐 Pre-filled Demo Credentials:</span>
+                    <span className="font-bold block mb-0.5">🔐 {t('demoCredentialsTitle')}:</span>
                     Username: block_development_officer<br />
                     Password: bdo@123
                   </div>
