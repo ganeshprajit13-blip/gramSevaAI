@@ -7,13 +7,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, FileText, Users, Building2,
   LogOut, X, ChevronRight, ShieldAlert,
-  Bot, History, Settings, Bell, Heart
+  Bot, History, Settings, Bell, Heart, Image as ImageIcon
 } from 'lucide-react'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useLanguage } from '@/components/providers/language-provider'
 
 const navItems = [
   { href: '/admin/dashboard', translationKey: 'dashboard', icon: LayoutDashboard },
+  { href: '/admin/posters', translationKey: 'Government Posters' as any, icon: ImageIcon, label: 'Government Posters', isFeatured: true },
   { href: '/admin/women-empowerment', translationKey: 'Women Empowerment' as any, icon: Heart, label: 'Women Empowerment & Demographics', isFeatured: true },
   { href: '/admin/residents', translationKey: 'residents', icon: Users },
   { href: '/admin/schemes', translationKey: 'manageSchemes', icon: FileText },

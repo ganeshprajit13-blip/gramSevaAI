@@ -12,7 +12,8 @@ import {
   Trash2, Edit3, Bot, Sparkles, Upload, History, SlidersHorizontal,
   Database, UserCheck, AlertTriangle, AlertCircle, RefreshCw, Eye, Search,
   LayoutDashboard, Megaphone, ClipboardList, Cog, BarChart2, Clock,
-  ArrowUpRight, ArrowDownRight, Zap, Globe, Heart, Mic, MicOff, X
+  ArrowUpRight, ArrowDownRight, Zap, Globe, Heart, Mic, MicOff, X,
+  Image as ImageIcon
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -25,6 +26,7 @@ import { getStoredResidents, computeCentralMetrics } from '@/lib/resident-store'
 import { getStoredAnnouncements, saveAnnouncement, deleteAnnouncement, type AnnouncementRecord } from '@/lib/announcement-store'
 import { getStoredComplaints, updateComplaintStatus, type ComplaintRecord } from '@/lib/complaint-store'
 import { getStoredSchemes } from '@/lib/scheme-store'
+import PosterManager from '@/components/admin/poster-manager'
 
 // Static mockup datasets for admin analytics
 const monthlyApplicationsData = [
@@ -90,6 +92,7 @@ const INITIAL_AUDITS = [
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'posters', label: 'Govt Posters', icon: ImageIcon },
   { id: 'citizens', label: 'Citizens', icon: Users },
   { id: 'schemes', label: 'Schemes', icon: ClipboardList },
   { id: 'complaints', label: 'Complaints', icon: ShieldAlert },
@@ -644,7 +647,9 @@ export default function AdminDashboard() {
                       className="absolute inset-0 bg-cover bg-center"
                       style={{ backgroundImage: `url(${carouselSlides[activeCarouselSlide % carouselSlides.length]?.image})` }}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-tr from-[#070b22]/95 via-[#0c1c55]/85 to-indigo-950/75 z-10" />
+                      {/* Natural Image Presentation with soft left/bottom readability shadow */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 via-55% to-transparent z-10" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent z-10" />
                       <div className="absolute inset-0 z-20 flex flex-col justify-between p-8 sm:p-12 lg:p-16 text-white">
                         <div className="flex flex-wrap items-center gap-3">
                           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-xs font-black uppercase tracking-wider shadow-sm">
@@ -737,8 +742,9 @@ export default function AdminDashboard() {
                 <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <Zap className="w-3.5 h-3.5 text-orange-500" /> Quick Tasks
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-3">
                   {[
+                    { label: 'Govt Posters', icon: ImageIcon, color: 'text-teal-600 dark:text-teal-400', bg: 'hover:bg-teal-50 dark:hover:bg-teal-950/20 hover:border-teal-400/30', onClick: () => navigateToTab('posters') },
                     { label: 'Manage Citizens', icon: Users, color: 'text-blue-600 dark:text-blue-400', bg: 'hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-400/30', onClick: () => navigateToTab('citizens') },
                     { label: 'Welfare Schemes', icon: FileText, color: 'text-orange-600 dark:text-orange-400', bg: 'hover:bg-orange-50 dark:hover:bg-orange-950/20 hover:border-orange-400/30', onClick: () => navigateToTab('schemes') },
                     { label: 'Resolve Complaints', icon: ShieldAlert, color: 'text-red-600 dark:text-red-400', bg: 'hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-400/30', onClick: () => navigateToTab('complaints') },
@@ -1240,6 +1246,11 @@ export default function AdminDashboard() {
                 )
               })()}
             </div>
+          )}
+
+          {/* GOVERNMENT POSTERS TAB */}
+          {activeTab === 'posters' && (
+            <PosterManager />
           )}
 
           {/* 5. ANNOUNCEMENTS TAB — Full Screen */}

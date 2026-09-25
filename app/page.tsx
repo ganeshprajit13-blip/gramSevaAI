@@ -605,12 +605,12 @@ export default function HomePage() {
                           className="group relative h-40 sm:h-44 rounded-[18px] overflow-hidden shadow-md border border-slate-200 dark:border-slate-800 bg-slate-900 cursor-pointer"
                         >
                           <img
-                            src={poster.image}
+                            src={poster.image || poster.image_url}
                             alt={poster.title}
                             loading="lazy"
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-transparent p-3 flex flex-col justify-between" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 via-45% to-transparent p-3 flex flex-col justify-between" />
                           <div className="relative z-10 flex items-center justify-between">
                             <span className="px-2 py-0.5 rounded-md bg-[#0F766E] text-white text-[9px] font-extrabold uppercase tracking-wider shadow-xs">
                               {poster.type || 'Notice'}
@@ -1254,7 +1254,7 @@ export default function HomePage() {
             >
               <div className="h-64 relative bg-slate-950 overflow-hidden">
                 <img
-                  src={selectedAnnouncement.image}
+                  src={selectedAnnouncement.image || selectedAnnouncement.image_url}
                   alt={selectedAnnouncement.title}
                   className="w-full h-full object-cover"
                 />
