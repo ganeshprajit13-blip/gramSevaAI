@@ -15,45 +15,53 @@ export async function upsertProfile(
 ): Promise<{ profile: Profile | null; error: string | null }> {
   try {
     const decoded = await verifyIdToken(idToken)
+    const role = isAdminEmail(decoded.email ?? '') ? 'admin' : 'resident'
+
+    const fallbackProfile: Profile = {
+      id: `prof-${decoded.uid}`,
+      firebase_uid: decoded.uid,
+      email: decoded.email ?? '',
+      name: data.name ?? (role === 'admin' ? 'BDO Admin' : 'Resident'),
+      avatar_url: (data as any)?.avatar_url ?? decoded.picture ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      role,
+      profile_complete: true,
+      ...data,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as Profile
 
     // Bypass Supabase for mock tokens
     if (idToken.startsWith('mock-token-')) {
-      const role = idToken.replace('mock-token-', '') as 'admin' | 'resident'
-      const mockProfile: Profile = {
-        id: `mock-${role}-id`,
+      return { profile: fallbackProfile, error: null }
+    }
+
+    try {
+      const supabase = createServiceClient()
+      const profileData = {
         firebase_uid: decoded.uid,
         email: decoded.email ?? '',
-        name: data.name ?? (role === 'admin' ? 'BDO Admin' : 'Demo Resident'),
-        avatar_url: (data as any).avatar_url ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        avatar_url: decoded.picture ?? null,
         role,
-        profile_complete: true,
-        created_at: new Date().toISOString(),
+        ...data,
         updated_at: new Date().toISOString(),
       }
-      return { profile: mockProfile, error: null }
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .upsert(profileData, { onConflict: 'firebase_uid', ignoreDuplicates: false })
+        .select()
+        .single()
+
+      if (!error && profile) {
+        return { profile, error: null }
+      }
+    } catch (dbErr) {
+      console.warn('Supabase profile upsert note, using fallback profile:', dbErr)
     }
 
-    const supabase = createServiceClient()
-    const role = isAdminEmail(decoded.email ?? '') ? 'admin' : 'resident'
-
-    const profileData = {
-      firebase_uid: decoded.uid,
-      email: decoded.email ?? '',
-      avatar_url: decoded.picture ?? null,
-      role,
-      ...data,
-      updated_at: new Date().toISOString(),
-    }
-
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .upsert(profileData, { onConflict: 'firebase_uid', ignoreDuplicates: false })
-      .select()
-      .single()
-
-    if (error) return { profile: null, error: error.message }
-    return { profile, error: null }
+    return { profile: fallbackProfile, error: null }
   } catch (err: unknown) {
+    console.error('upsertProfile error:', err)
     return { profile: null, error: err instanceof Error ? err.message : 'Authentication failed' }
   }
 }

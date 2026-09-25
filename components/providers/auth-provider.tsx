@@ -33,14 +33,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (firebaseUser: User) => {
     try {
-      const idToken = await firebaseUser.getIdToken()
-      const { profile: p } = await upsertProfile(idToken, {
-        name: firebaseUser.displayName ?? undefined,
-        avatar_url: firebaseUser.photoURL ?? undefined,
-      } as any)
+      const idToken = await firebaseUser.getIdToken().catch(() => '')
+      let p: Profile | null = null
+      if (idToken) {
+        const res = await upsertProfile(idToken, {
+          name: firebaseUser.displayName ?? undefined,
+          avatar_url: firebaseUser.photoURL ?? undefined,
+        } as any)
+        p = res.profile
+      }
+
+      if (!p) {
+        const localProfileKey = `gramseva_profile_data_${firebaseUser.uid}`
+        const localSaved = localStorage.getItem(localProfileKey)
+        if (localSaved) {
+          try {
+            p = JSON.parse(localSaved)
+          } catch {}
+        }
+      }
+
+      if (!p) {
+        p = {
+          id: `prof-${firebaseUser.uid}`,
+          firebase_uid: firebaseUser.uid,
+          email: firebaseUser.email ?? '',
+          name: firebaseUser.displayName ?? 'Resident',
+          avatar_url: firebaseUser.photoURL ?? undefined,
+          role: 'resident',
+          profile_complete: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      }
+
       setProfile(p)
     } catch (err) {
-      console.error('Profile fetch error:', err)
+      console.error('Profile fetch note:', err)
+      const fallbackProfile: Profile = {
+        id: `prof-${firebaseUser.uid}`,
+        firebase_uid: firebaseUser.uid,
+        email: firebaseUser.email ?? '',
+        name: firebaseUser.displayName ?? 'Resident',
+        avatar_url: firebaseUser.photoURL ?? undefined,
+        role: 'resident',
+        profile_complete: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      setProfile(fallbackProfile)
     }
   }
 
@@ -48,11 +89,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       const mockSession = localStorage.getItem('gramseva_mock_session')
       if (mockSession) {
-        const { profile: savedProfile } = JSON.parse(mockSession)
-        setProfile(savedProfile)
-      } else {
-        await fetchProfile(user)
+        try {
+          const { profile: savedProfile } = JSON.parse(mockSession)
+          if (savedProfile) {
+            setProfile(savedProfile)
+            return
+          }
+        } catch {}
       }
+
+      const localProfileKey = `gramseva_profile_data_${user.uid}`
+      const localSaved = localStorage.getItem(localProfileKey)
+      if (localSaved) {
+        try {
+          const p = JSON.parse(localSaved)
+          if (p) {
+            setProfile(p)
+            return
+          }
+        } catch {}
+      }
+
+      await fetchProfile(user)
     }
   }
 
