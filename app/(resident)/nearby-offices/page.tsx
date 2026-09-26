@@ -156,20 +156,16 @@ export default function NearbyOfficesPage() {
         const updatedFallbacks = buildFallbackOffices(lat, lng, { lat, lng })
         setOffices(updatedFallbacks)
 
-        if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
-          const geocoder = new window.google.maps.Geocoder()
-          geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        // Reverse geocode with OpenStreetMap Nominatim
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+          headers: { 'Accept-Language': 'en' }
+        })
+          .then((res) => res.json())
+          .then((data) => {
             setIsLocating(false)
-            let detectedName = 'Your Current Location'
-            let fullAddr = 'Coimbatore, Tamil Nadu, India'
-
-            if (status === window.google.maps.GeocoderStatus.OK && results?.[0]) {
-              const locality = results[0].address_components.find(
-                (c) => c.types.includes('sublocality') || c.types.includes('locality')
-              )?.long_name
-              detectedName = locality ? `${locality}, Coimbatore` : results[0].formatted_address.split(',')[0]
-              fullAddr = results[0].formatted_address
-            }
+            const addr = data.address || {}
+            const detectedName = addr.suburb || addr.neighbourhood || addr.village || addr.town || addr.city || addr.county || 'Your Current Location'
+            const fullAddr = data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
 
             setCurrentLocation({
               name: detectedName,
@@ -180,17 +176,17 @@ export default function NearbyOfficesPage() {
             })
             toast.success(`📍 Located near ${detectedName}`)
           })
-        } else {
-          setIsLocating(false)
-          setCurrentLocation({
-            name: 'Your Current Location',
-            address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-            latitude: lat,
-            longitude: lng,
-            source: 'gps',
+          .catch(() => {
+            setIsLocating(false)
+            setCurrentLocation({
+              name: 'Your Current Location',
+              address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+              latitude: lat,
+              longitude: lng,
+              source: 'gps',
+            })
+            toast.success('📍 Centered around your GPS location')
           })
-          toast.success('📍 Centered around your GPS location')
-        }
       },
       (error) => {
         setIsLocating(false)

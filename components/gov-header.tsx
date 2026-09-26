@@ -9,7 +9,7 @@ import { useLanguage } from '@/components/providers/language-provider'
 import { useScreenReader } from '@/components/providers/screen-reader-provider'
 import {
   ShieldCheck, Volume2, Type, CircleUserRound, Share2, X,
-  Bot, ArrowRight, Home, FileText, Landmark, Bell, PanelLeft
+  Bot, ArrowRight, Home, FileText, Landmark, Bell, PanelLeft, MapPin
 } from 'lucide-react'
 import { FaYoutube, FaInstagram, FaFacebookF } from 'react-icons/fa'
 import { FaXTwitter } from 'react-icons/fa6'
@@ -56,6 +56,7 @@ export default function GovHeader() {
     { href: '/dashboard', label: t('home'), icon: Home },
     { href: '/schemes', label: t('welfareSchemes'), icon: FileText },
     { href: '/services', label: t('services'), icon: Landmark },
+    { href: '/nearby-offices', label: language === 'en' ? 'Nearby Location' : 'அருகிலுள்ள இடங்கள்', icon: MapPin },
     { href: '/announcements', label: t('announcements'), icon: Bell },
     { href: '/ai-assistant', label: 'GramSeva AI', icon: Bot, highlight: true },
   ]
