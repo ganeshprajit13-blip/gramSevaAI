@@ -393,6 +393,51 @@ export const translations = {
     googleMapsError: 'Google Maps could not be loaded. Please check your internet connection.',
     networkError: 'Network error. Please check your connection.',
     fieldRequired: 'This field is required.',
+
+    // ── Enhanced Search, Voice & Scheme Details ──
+    voiceSearch: 'Voice Search',
+    stopRecording: 'Stop Recording',
+    listeningTamil: 'Listening in Tamil... Speak now',
+    listeningEnglish: 'Listening in English... Speak now',
+    micActive: 'Microphone active',
+    clearSearch: 'Clear search',
+    searchSchemesPlaceholder: 'Search schemes by title, benefits, or category...',
+    searching: 'Searching schemes...',
+    noSchemesFoundTitle: 'No matching schemes found',
+    noSchemesFoundDesc: 'Try adjusting your category filter, speaking differently, or clearing search keywords.',
+    resetAllFilters: 'Reset All Filters',
+    smartGovPortal: 'GramSeva Smart Governance Portal',
+    aiEligibilityEngine: 'AI Eligibility Engine',
+    checkMyEligibility: 'Check My Eligibility',
+    eligibilityCriteria: 'Eligibility Criteria',
+    keyBenefits: 'Key Benefits',
+    requiredDocs: 'Required Documents',
+    howToApply: 'How to Apply',
+    officeToVisit: 'Office to Visit',
+    importantFaqs: 'Important Information & FAQs',
+    aiSchemeSummary: 'AI Scheme Summary',
+    directBenefitTransfer: 'Direct Monthly Benefit',
+    statusLive: 'Live',
+    statusUpcoming: 'Upcoming',
+    statusClosed: 'Closed',
+    typeCentralGovt: 'Central Government',
+    typeStateGovt: 'State Government',
+    typeDistrictGovt: 'District',
+    typePanchayatGovt: 'Panchayat',
+    backToSchemes: 'Back to Schemes',
+    verifiedProfileActive: 'Verified Profile Active for Resident:',
+    schemeBookmarked: 'Scheme Bookmarked',
+    bookmarkRemoved: 'Bookmark Removed',
+    linkCopied: 'Scheme Link Copied to Clipboard!',
+    downloadingPdf: 'Downloading official scheme notification PDF...',
+    downloadCompleted: 'Download Completed!',
+    browseCentralState: 'Browse official Central & State Government schemes deployed by the Block Development Officer (BDO). Click "Check My Eligibility" to compare your verified profile instantly.',
+    governmentPosters: 'Government Posters',
+    manageSchemes: 'Manage Schemes',
+    residents: 'Residents',
+    villageAnnounce: 'Village Announcements',
+    auditLogs: 'Audit Logs',
+    womenEmpowermentNav: 'Women Empowerment',
   },
 
   ta: {
@@ -789,6 +834,51 @@ export const translations = {
     googleMapsError: 'Google Maps-ஐ ஏற்ற முடியவில்லை. இணைய இணைப்பை சரிபார்க்கவும்.',
     networkError: 'இணைய இணைப்புப் பிழை. இணைப்பைச் சரிபார்க்கவும்.',
     fieldRequired: 'இப்பகுதியை நிரப்புவது கட்டாயமாகும்.',
+
+    // ── Enhanced Search, Voice & Scheme Details ──
+    voiceSearch: 'குரல் தேடல்',
+    stopRecording: 'குரல் பதிவை நிறுத்து',
+    listeningTamil: 'தமிழில் கேட்கிறது... இப்போது பேசுங்கள்',
+    listeningEnglish: 'ஆங்கிலத்தில் கேட்கிறது... இப்போது பேசுங்கள்',
+    micActive: 'மைக் இயக்கத்தில் உள்ளது',
+    clearSearch: 'தேடலை அழிக்கவும்',
+    searchSchemesPlaceholder: 'திட்டத்தின் பெயர், பலன்கள் அல்லது பிரிவு மூலம் தேடுங்கள்...',
+    searching: 'திட்டங்களைத் தேடுகிறது...',
+    noSchemesFoundTitle: 'பொருத்தமான திட்டங்கள் எதுவும் கண்டறியப்படவில்லை',
+    noSchemesFoundDesc: 'உங்கள் தேடல் சொற்களை மாற்றவோ, வேறு சொற்களில் பேசவோ அல்லது வடிப்பான்களை அழிக்கவோ முயலவும்.',
+    resetAllFilters: 'அனைத்து வடிப்பான்களையும் மீட்டமைக்க',
+    smartGovPortal: 'கிராமசேவா திறன் ஆளுகை தளம்',
+    aiEligibilityEngine: 'AI தகுதி சரிபார்ப்பு இயந்திரம்',
+    checkMyEligibility: 'எனது தகுதியைச் சரிபார்க்கவும்',
+    eligibilityCriteria: 'தகுதி வரம்புகள்',
+    keyBenefits: 'முக்கிய நன்மைகள்',
+    requiredDocs: 'தேவையான ஆவணங்கள்',
+    howToApply: 'விண்ணப்பிக்கும் முறை',
+    officeToVisit: 'அணுக வேண்டிய அலுவலகம்',
+    importantFaqs: 'முக்கிய தகவல்கள் & கேள்விகள்',
+    aiSchemeSummary: 'AI திட்டச் சுருக்கம்',
+    directBenefitTransfer: 'நேரடி மாதாந்திர நன்மை',
+    statusLive: 'செயலில் உள்ளது (Live)',
+    statusUpcoming: 'விரைவில் (Upcoming)',
+    statusClosed: 'முடிவடைந்தது',
+    typeCentralGovt: 'மத்திய அரசு',
+    typeStateGovt: 'மாநில அரசு',
+    typeDistrictGovt: 'மாவட்ட நிர்வாகம்',
+    typePanchayatGovt: 'கிராம ஊராட்சி',
+    backToSchemes: 'அனைத்து திட்டங்களுக்கும் திரும்புக',
+    verifiedProfileActive: 'சரிபார்க்கப்பட்ட சுயவிவரம்:',
+    schemeBookmarked: 'திட்டம் புக்மார்க் செய்யப்பட்டது',
+    bookmarkRemoved: 'புக்மார்க் நீக்கப்பட்டது',
+    linkCopied: 'திட்ட இணைப்பு நகலெடுக்கப்பட்டது!',
+    downloadingPdf: 'அதிகாரப்பூர்வ திட்ட PDF பதிவிறக்கப்படுகிறது...',
+    downloadCompleted: 'பதிவிறக்கம் முடிந்தது!',
+    browseCentralState: 'வட்டார வளர்ச்சி அலுவலரால் (BDO) வெளியிடப்பட்ட மத்திய மற்றும் மாநில அரசு நலத்திட்டங்களை உலாவுங்கள். உங்கள் தகுதியை உடனடியாக அறிய "எனது தகுதியைச் சரிபார்க்கவும்" பொத்தானை அழுத்தவும்.',
+    governmentPosters: 'அரசு சுவரொட்டிகள்',
+    manageSchemes: 'திட்டங்களை நிர்வகி',
+    residents: 'கிராமக் குடியிருப்பாளர்கள்',
+    villageAnnounce: 'கிராம அறிவிப்புகள்',
+    auditLogs: 'செயல்பாட்டுப் பதிவுகள்',
+    womenEmpowermentNav: 'மகளிர் நலம் & தரவுகள்',
   }
 } as const
 
@@ -796,18 +886,20 @@ export type TranslationKey = keyof typeof translations.en
 
 /**
  * Dynamic content helper: returns Tamil text when language is 'ta' and available,
- * otherwise safely falls back to English text.
+ * otherwise safely falls back to English text. Supports both string and array fields.
  */
 export function getTranslatedContent(
   item: any,
   field: string,
   language: 'en' | 'ta'
-): string {
+): any {
   if (!item) return ''
   if (language === 'ta') {
     const taVal = item[`${field}_ta`] || item[`${field}Ta`]
-    if (taVal && typeof taVal === 'string' && taVal.trim().length > 0) {
-      return taVal
+    if (taVal !== undefined && taVal !== null) {
+      if (typeof taVal === 'string' && taVal.trim().length > 0) return taVal
+      if (Array.isArray(taVal) && taVal.length > 0) return taVal
+      if (typeof taVal === 'object') return taVal
     }
   }
   return item[field] || item[`${field}_en`] || ''

@@ -12,17 +12,21 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/components/providers/auth-provider'
+import { useLanguage } from '@/components/providers/language-provider'
 import { getStoredSchemes, evaluateResidentEligibility, type SchemeRecord } from '@/lib/scheme-store'
 import { getStoredResidents, type ResidentRecord } from '@/lib/resident-store'
+import { getTranslatedContent } from '@/utils/translations'
 
 export default function ResidentSchemeDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
   const { user } = useAuth()
+  const { t, language } = useLanguage()
 
   const [scheme, setScheme] = useState<SchemeRecord | null>(null)
   const [residentProfile, setResidentProfile] = useState<ResidentRecord | null>(null)
   const [loading, setLoading] = useState(true)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [aiEvaluation, setAiEvaluation] = useState<any>(null)
   const [bookmarked, setBookmarked] = useState(false)
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0)
@@ -62,34 +66,35 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
 
   const toggleBookmark = () => {
     setBookmarked(!bookmarked)
-    toast.success(!bookmarked ? 'Scheme Bookmarked' : 'Bookmark Removed')
+    toast.success(!bookmarked ? t('schemeBookmarked') : t('bookmarkRemoved'))
   }
 
   const handleShare = () => {
+    const currentTitle = scheme ? (getTranslatedContent(scheme, 'title', language) || scheme.title) : 'Government Scheme'
     if (navigator.share) {
       navigator.share({
-        title: scheme?.title || 'Government Scheme',
+        title: currentTitle,
         url: window.location.href
       }).catch(() => {})
     } else {
       navigator.clipboard.writeText(window.location.href)
-      toast.success('Scheme Link Copied to Clipboard!')
+      toast.success(t('linkCopied'))
     }
   }
 
   const handleDownloadPdf = () => {
-    toast.info('Downloading official scheme notification PDF...')
+    toast.info(t('downloadingPdf'))
     setTimeout(() => {
-      toast.success('Download Completed!')
+      toast.success(t('downloadCompleted'))
     }, 1500)
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Loading Scheme Details...</p>
+          <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{t('loading')}</p>
         </div>
       </div>
     )
@@ -97,55 +102,79 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
 
   if (!scheme) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="text-center bg-white border border-slate-200 p-8 rounded-3xl max-w-md w-full shadow-xs space-y-4">
-          <FileText className="w-12 h-12 text-slate-300 mx-auto" />
-          <h2 className="text-lg font-extrabold text-slate-900">Scheme Not Found</h2>
-          <p className="text-xs text-slate-500">The government scheme you requested does not exist or has been archived.</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6">
+        <div className="text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-3xl max-w-md w-full shadow-xs space-y-4">
+          <FileText className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+          <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
+            {language === 'ta' ? 'திட்டம் கிடைக்கவில்லை' : 'Scheme Not Found'}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {language === 'ta' ? 'நீங்கள் கோரிய அரசுத் திட்டம் தற்போது பயன்பாட்டில் இல்லை அல்லது நீக்கப்பட்டுள்ளது.' : 'The government scheme you requested does not exist or has been archived.'}
+          </p>
           <Link href="/schemes" className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-xs">
-            <ArrowLeft className="w-4 h-4" /> Back to Schemes
+            <ArrowLeft className="w-4 h-4" /> {t('backToSchemes')}
           </Link>
         </div>
       </div>
     )
   }
 
-  const title = scheme.title || scheme.name || 'Government Welfare Scheme'
+  const title = getTranslatedContent(scheme, 'title', language) || scheme.title || scheme.name || 'Government Welfare Scheme'
+  const description = getTranslatedContent(scheme, 'description', language) || scheme.description
+  const category = (language === 'ta' && scheme.category_ta) ? scheme.category_ta : scheme.category
+  const schemeType = (language === 'ta' && scheme.type_ta) ? scheme.type_ta : scheme.type
+  const aiSummary = (language === 'ta' && scheme.ai_summary_ta) ? scheme.ai_summary_ta : scheme.ai_summary
+  const benefitAmount = (language === 'ta' && scheme.benefit_details_ta?.amount) ? scheme.benefit_details_ta.amount : scheme.benefit_details?.amount
+  const benefitFrequency = (language === 'ta' && scheme.benefit_details_ta?.frequency) ? scheme.benefit_details_ta.frequency : scheme.benefit_details?.frequency
+  const benefitType = (language === 'ta' && scheme.benefit_details_ta?.type) ? scheme.benefit_details_ta.type : scheme.benefit_details?.type
+  const benefitsList = (language === 'ta' && Array.isArray(scheme.benefits_list_ta) && scheme.benefits_list_ta.length > 0)
+    ? scheme.benefits_list_ta
+    : scheme.benefits_list || []
+  const reqDocs = (language === 'ta' && Array.isArray(scheme.required_documents_ta) && scheme.required_documents_ta.length > 0)
+    ? scheme.required_documents_ta
+    : scheme.required_documents || []
+  const faqs = (language === 'ta' && Array.isArray(scheme.important_info_ta?.faqs) && scheme.important_info_ta.faqs.length > 0)
+    ? scheme.important_info_ta.faqs
+    : scheme.important_info?.faqs || []
+  const officeName = (language === 'ta' && scheme.application_method_ta?.office_name) ? scheme.application_method_ta.office_name : scheme.application_method?.office_name
+  const officerName = (language === 'ta' && scheme.application_method_ta?.officer_name) ? scheme.application_method_ta.officer_name : scheme.application_method?.officer_name
+  const officeAddress = (language === 'ta' && scheme.application_method_ta?.office_address) ? scheme.application_method_ta.office_address : scheme.application_method?.office_address
+  const workingHours = (language === 'ta' && scheme.application_method_ta?.working_hours) ? scheme.application_method_ta.working_hours : scheme.application_method?.working_hours
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 pt-6 px-4 md:px-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 pt-6 px-4 md:px-8">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* TOP NAVIGATION BAR */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
           <Link
             href="/schemes"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-blue-600 transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-blue-600 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Schemes
+            <ArrowLeft className="w-4 h-4" /> {t('backToSchemes')}
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handleShare}
-              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all text-xs font-bold flex items-center gap-1.5"
+              className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-xl transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
-              <Share2 className="w-4 h-4" /> Share
+              <Share2 className="w-4 h-4" /> {t('share')}
             </button>
 
             <button
               onClick={toggleBookmark}
-              className={`p-2 rounded-xl transition-all text-xs font-bold flex items-center gap-1.5 ${
-                bookmarked ? 'bg-amber-500 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              className={`p-2 rounded-xl transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                bookmarked ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300'
               }`}
             >
-              <Bookmark className="w-4 h-4 fill-current" /> {bookmarked ? 'Bookmarked' : 'Bookmark'}
+              <Bookmark className="w-4 h-4 fill-current" /> {bookmarked ? t('schemeBookmarked') : t('bookmark')}
             </button>
 
             <button
               onClick={handleDownloadPdf}
-              className="px-3 py-2 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-xl transition-all text-xs font-bold flex items-center gap-1.5"
+              className="px-3 py-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 rounded-xl transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
-              <Download className="w-4 h-4" /> PDF Gazette
+              <Download className="w-4 h-4" /> {language === 'ta' ? 'அரசிதழ் PDF' : 'PDF Gazette'}
             </button>
 
             {scheme.application_method?.online_url && (
@@ -155,14 +184,14 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
                 rel="noreferrer"
                 className="px-4 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 text-white rounded-xl text-xs font-black hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm"
               >
-                <ExternalLink className="w-4 h-4" /> Apply Now
+                <ExternalLink className="w-4 h-4" /> {t('applyNow')}
               </a>
             )}
           </div>
         </div>
 
         {/* HERO BANNER & POSTER CARD */}
-        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
           <div className="relative h-64 md:h-80 w-full">
             <img
               src={scheme.media?.poster_url || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80'}
@@ -170,33 +199,35 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent flex flex-col justify-end p-6 md:p-8 text-white space-y-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="bg-blue-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-md">
-                  {scheme.category}
+                  {category}
                 </span>
                 <span className="bg-emerald-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-md">
-                  {scheme.type}
+                  {schemeType}
                 </span>
                 <span className="bg-slate-800/80 backdrop-blur-md text-slate-200 text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Closing Date: {scheme.closing_date}
+                  <Clock className="w-3 h-3" /> {language === 'ta' ? 'கடைசி தேதி:' : 'Closing Date:'} {scheme.closing_date}
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black tracking-tight">{title}</h1>
-              <p className="text-xs md:text-sm text-slate-300 max-w-3xl line-clamp-2">
-                {scheme.description}
+              <p className="text-xs md:text-sm text-slate-300 max-w-3xl line-clamp-2 leading-relaxed">
+                {description}
               </p>
             </div>
           </div>
         </div>
 
         {/* EXECUTIVE AI SUMMARY CARD */}
-        {scheme.ai_summary && (
-          <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex items-start gap-3 shadow-xs">
-            <Bot className="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0" />
+        {aiSummary && (
+          <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-900 rounded-2xl flex items-start gap-3 shadow-xs">
+            <Bot className="w-6 h-6 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
             <div className="space-y-1">
-              <span className="text-xs font-black text-blue-900 uppercase tracking-wider block">GramSeva AI Executive Summary</span>
-              <p className="text-xs text-blue-900/90 font-medium leading-relaxed">
-                {scheme.ai_summary}
+              <span className="text-xs font-black text-blue-900 dark:text-blue-300 uppercase tracking-wider block">
+                {t('aiSchemeSummary')}
+              </span>
+              <p className="text-xs text-blue-950/90 dark:text-slate-200 font-medium leading-relaxed">
+                {aiSummary}
               </p>
             </div>
           </div>
@@ -207,15 +238,17 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
           {/* LEFT 2 COLUMNS */}
           <div className="lg:col-span-2 space-y-6">
             {/* 1. LIVE AI ELIGIBILITY EVALUATOR WIDGET */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-black text-base text-slate-900">Automated AI Eligibility Matcher</h3>
+                  <h3 className="font-black text-base text-slate-900 dark:text-white">
+                    {language === 'ta' ? 'தானியங்கி AI தகுதி சரிபார்ப்பு' : 'Automated AI Eligibility Matcher'}
+                  </h3>
                 </div>
                 {residentProfile && (
-                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
-                    Verified Resident: {residentProfile.name}
+                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded-md">
+                    {residentProfile.name} ({residentProfile.village})
                   </span>
                 )}
               </div>
@@ -224,96 +257,97 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
                 <div className="space-y-4">
                   {/* Status Banner */}
                   <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
-                    aiEvaluation.status === 'Eligible'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                      : aiEvaluation.status === 'Partially Eligible'
-                      ? 'bg-amber-50 border-amber-200 text-amber-900'
-                      : 'bg-red-50 border-red-200 text-red-900'
+                    aiEvaluation.isEligible
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300'
+                      : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300'
                   }`}>
-                    {aiEvaluation.status === 'Eligible' ? (
+                    {aiEvaluation.isEligible ? (
                       <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
                     ) : (
                       <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
                     )}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-extrabold text-sm uppercase tracking-wider">Evaluation Status: {aiEvaluation.status}</h4>
+                        <h4 className="font-extrabold text-sm uppercase tracking-wider">
+                          {language === 'ta' ? 'முடிவு:' : 'Evaluation Status:'} {aiEvaluation.isEligible ? (language === 'ta' ? 'முழுத் தகுதி உள்ளது' : 'Eligible') : (language === 'ta' ? 'பகுதி தகுதி உள்ளது' : 'Partially Eligible')} ({aiEvaluation.matchScore}%)
+                        </h4>
                       </div>
-                      <p className="text-xs font-medium leading-relaxed">{aiEvaluation.explanation}</p>
+                      <p className="text-xs font-medium leading-relaxed">{aiEvaluation.summary}</p>
                     </div>
                   </div>
 
-                  {/* Matched Rules Checklist */}
-                  {aiEvaluation.matched?.length > 0 && (
-                    <div className="space-y-2">
-                      <span className="text-xs font-extrabold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Matched Profile Criteria ({aiEvaluation.matched.length})
-                      </span>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {aiEvaluation.matched.map((m: string, i: number) => (
-                          <div key={i} className="p-2.5 bg-emerald-50/60 border border-emerald-100 rounded-xl text-xs font-semibold text-emerald-900 flex items-center gap-2">
-                            <span className="text-emerald-600 font-bold">✓</span> {m}
+                  {/* Criteria Checklist */}
+                  <div className="space-y-2">
+                    <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                      {t('eligibilityCriteria')}
+                    </span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {aiEvaluation.criteria?.map((item: any, i: number) => (
+                        <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs flex items-start gap-2">
+                          {item.passed ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          )}
+                          <div>
+                            <span className="font-bold text-slate-800 dark:text-slate-200 block">{item.title}</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-[11px]">{item.reason}</span>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-
-                  {/* Missing Requirements */}
-                  {aiEvaluation.missing?.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-slate-100">
-                      <span className="text-xs font-extrabold text-red-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <XCircle className="w-4 h-4 text-red-600" /> Unmet Qualification Requirements ({aiEvaluation.missing.length})
-                      </span>
-                      <div className="space-y-1.5">
-                        {aiEvaluation.missing.map((m: string, i: number) => (
-                          <div key={i} className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-900 flex items-start gap-2">
-                            <span className="text-red-600 font-bold mt-0.5">⚠️</span> <div>{m}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               ) : (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-2">
-                  <p className="text-xs text-slate-600">Complete your verified resident profile to unlock automatic AI eligibility matching.</p>
-                  <Link href="/complete-profile" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline">
-                    Complete Profile Now →
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-center space-y-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    {language === 'ta' ? 'தானியங்கி AI தகுதி சரிபார்ப்பைப் பெற உங்கள் சுயவிவரப் படிவத்தை முடிக்கவும்.' : 'Complete your verified resident profile to unlock automatic AI eligibility matching.'}
+                  </p>
+                  <Link href="/profile" className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline">
+                    {language === 'ta' ? 'சுயவிவரத்தைப் பூர்த்தி செய்க →' : 'Complete Profile Now →'}
                   </Link>
                 </div>
               )}
             </div>
 
             {/* 2. SCHEME BENEFITS MATRIX */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                <DollarSign className="w-5 h-5 text-emerald-600" /> Scheme Benefits & Financial Assistance
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4">
+              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <DollarSign className="w-5 h-5 text-emerald-600" /> {language === 'ta' ? 'திட்டத்தின் பலன்கள் & நிதி உதவி' : 'Scheme Benefits & Financial Assistance'}
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900">
-                  <span className="text-[10px] font-black uppercase tracking-wider block text-emerald-800">Benefit Amount</span>
-                  <p className="text-xl font-black mt-1 text-emerald-700">{scheme.benefit_details?.amount || 'N/A'}</p>
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-emerald-900 dark:text-emerald-300">
+                  <span className="text-[10px] font-black uppercase tracking-wider block text-emerald-800 dark:text-emerald-400">
+                    {language === 'ta' ? 'நன்மைத் தொகை' : 'Benefit Amount'}
+                  </span>
+                  <p className="text-xl font-black mt-1 text-emerald-700 dark:text-emerald-300">{benefitAmount || 'N/A'}</p>
                 </div>
 
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-blue-900">
-                  <span className="text-[10px] font-black uppercase tracking-wider block text-blue-800">Disbursement Frequency</span>
-                  <p className="text-xl font-black mt-1 text-blue-700">{scheme.benefit_details?.frequency || 'One-time'}</p>
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl text-blue-900 dark:text-blue-300">
+                  <span className="text-[10px] font-black uppercase tracking-wider block text-blue-800 dark:text-blue-400">
+                    {language === 'ta' ? 'வழங்கும் முறை' : 'Disbursement Frequency'}
+                  </span>
+                  <p className="text-xl font-black mt-1 text-blue-700 dark:text-blue-300">{benefitFrequency || 'Regular'}</p>
                 </div>
 
-                <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl text-purple-900">
-                  <span className="text-[10px] font-black uppercase tracking-wider block text-purple-800">Assistance Category</span>
-                  <p className="text-xl font-black mt-1 text-purple-700">{scheme.benefit_details?.type || 'Subsidy'}</p>
+                <div className="p-4 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-2xl text-purple-900 dark:text-purple-300">
+                  <span className="text-[10px] font-black uppercase tracking-wider block text-purple-800 dark:text-purple-400">
+                    {language === 'ta' ? 'உதவிப் பிரிவு' : 'Assistance Category'}
+                  </span>
+                  <p className="text-xl font-black mt-1 text-purple-700 dark:text-purple-300">{benefitType || 'Direct Transfer'}</p>
                 </div>
               </div>
 
-              {scheme.benefits_list?.length > 0 && (
+              {benefitsList.length > 0 && (
                 <div className="space-y-2 pt-2">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Key Highlights & Support Services</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                    {language === 'ta' ? 'முக்கிய சிறப்பம்சங்கள் & நன்மைகள்' : 'Key Highlights & Support Services'}
+                  </span>
                   <div className="space-y-2">
-                    {scheme.benefits_list.map((b, i) => (
-                      <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 flex items-start gap-2.5">
+                    {benefitsList.map((b: string, i: number) => (
+                      <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-start gap-2.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                         <span>{b}</span>
                       </div>
@@ -324,42 +358,45 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
             </div>
 
             {/* 3. REQUIRED PROOF DOCUMENTS */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                <FileText className="w-5 h-5 text-purple-600" /> Required Verification Documents
-              </h3>
+            {reqDocs.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4">
+                <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <FileText className="w-5 h-5 text-purple-600" /> {t('requiredDocs')}
+                </h3>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {scheme.required_documents?.map(doc => (
-                  <div key={doc} className="p-3 bg-purple-50/60 border border-purple-200 rounded-xl flex items-center justify-between">
-                    <span className="text-xs font-bold text-purple-950">{doc}</span>
-                    <CheckCircle2 className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                  </div>
-                ))}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {reqDocs.map((doc: string) => (
+                    <div key={doc} className="p-3 bg-purple-50/60 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl flex items-center justify-between">
+                      <span className="text-xs font-bold text-purple-950 dark:text-purple-300">{doc}</span>
+                      <CheckCircle2 className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 4. FREQUENTLY ASKED QUESTIONS */}
-            {scheme.important_info?.faqs?.length > 0 && (
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
-                <h3 className="font-black text-base text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                  <HelpCircle className="w-5 h-5 text-indigo-600" /> Frequently Asked Questions (FAQs)
+            {faqs.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4">
+                <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <HelpCircle className="w-5 h-5 text-indigo-600" /> {language === 'ta' ? 'அடிக்கடி கேட்கப்படும் கேள்விகள் (FAQs)' : 'Frequently Asked Questions (FAQs)'}
                 </h3>
 
                 <div className="space-y-3">
-                  {scheme.important_info.faqs.map((faq, idx) => {
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {faqs.map((faq: any, idx: number) => {
                     const isOpen = openFaqIndex === idx
                     return (
-                      <div key={idx} className="border border-slate-200 rounded-2xl overflow-hidden transition-all">
+                      <div key={idx} className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden transition-all">
                         <button
                           onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                          className="w-full p-4 text-left font-bold text-xs text-slate-800 bg-slate-50/50 hover:bg-slate-100 flex items-center justify-between"
+                          className="w-full p-4 text-left font-bold text-xs text-slate-800 dark:text-slate-200 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-100 flex items-center justify-between cursor-pointer"
                         >
-                          <span>Q: {faq.question}</span>
+                          <span>{language === 'ta' ? 'கேள்வி:' : 'Q:'} {faq.question}</span>
                           <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                         </button>
                         {isOpen && (
-                          <div className="p-4 bg-white text-xs text-slate-600 border-t border-slate-100 font-medium leading-relaxed">
+                          <div className="p-4 bg-white dark:bg-slate-900 text-xs text-slate-600 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800 font-medium leading-relaxed">
                             {faq.answer}
                           </div>
                         )}
@@ -375,14 +412,18 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
           <div className="space-y-6">
             {/* ONLINE PORTAL ACTION CARD */}
             {scheme.application_method?.type !== 'Offline' && (
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4 border-t-4 border-t-blue-600">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4 border-t-4 border-t-blue-600">
                 <div className="flex items-center gap-2">
                   <Globe className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-extrabold text-sm text-slate-900">Online Submission Portal</h3>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                    {language === 'ta' ? 'ஆன்லைன் விண்ணப்ப தளம்' : 'Online Submission Portal'}
+                  </h3>
                 </div>
 
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Direct online submission is enabled for this government scheme. Submit your verified Aadhaar and Ration Card documents via official portal.
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {language === 'ta'
+                    ? 'இத்திட்டத்திற்கு நேரடி ஆன்லைன் பதிவு இயக்கத்தில் உள்ளது. அதிகாரப்பூர்வ அரசு தளம் மூலம் ஆதார் மற்றும் ரேஷன் விவரங்களை சமர்ப்பிக்கலாம்.'
+                    : 'Direct online submission is enabled for this government scheme. Submit your verified Aadhaar and Ration Card documents via official portal.'}
                 </p>
 
                 {scheme.application_method?.online_url && (
@@ -392,7 +433,7 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
                     rel="noreferrer"
                     className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
                   >
-                    <ExternalLink className="w-4 h-4" /> Open Official Portal
+                    <ExternalLink className="w-4 h-4" /> {language === 'ta' ? 'அதிகாரப்பூர்வ தளத்தைத் திறக்கவும்' : 'Open Official Portal'}
                   </a>
                 )}
               </div>
@@ -400,31 +441,41 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
 
             {/* PHYSICAL BDO OFFICE LOCATION CARD */}
             {scheme.application_method?.type !== 'Online' && (
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4 border-t-4 border-t-emerald-600">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-4 border-t-4 border-t-emerald-600">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-emerald-600" />
-                  <h3 className="font-extrabold text-sm text-slate-900">Physical BDO Office Desk</h3>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                    {language === 'ta' ? 'அணுக வேண்டிய அரசு அலுவலகம்' : 'Physical Office Desk'}
+                  </h3>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <div>
-                    <span className="font-bold text-slate-500 uppercase tracking-wider block text-[10px]">Office Name</span>
-                    <span className="font-bold text-slate-900">{scheme.application_method?.office_name || 'Block Development Office'}</span>
+                    <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block text-[10px]">
+                      {language === 'ta' ? 'அலுவலகத்தின் பெயர்' : 'Office Name'}
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white">{officeName || 'Block Development Office (BDO)'}</span>
                   </div>
 
                   <div>
-                    <span className="font-bold text-slate-500 uppercase tracking-wider block text-[10px]">Officer In-Charge</span>
-                    <span className="font-bold text-slate-900">{scheme.application_method?.officer_name || 'Welfare Extension Officer'}</span>
+                    <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block text-[10px]">
+                      {language === 'ta' ? 'பொறுப்பு அலுவலர்' : 'Officer In-Charge'}
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white">{officerName || 'Welfare Extension Officer'}</span>
                   </div>
 
                   <div>
-                    <span className="font-bold text-slate-500 uppercase tracking-wider block text-[10px]">Address</span>
-                    <span className="font-medium text-slate-700">{scheme.application_method?.office_address || 'Block Headquarters Main Office'}</span>
+                    <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block text-[10px]">
+                      {language === 'ta' ? 'முகவரி' : 'Address'}
+                    </span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{officeAddress || 'Block Headquarters Main Office'}</span>
                   </div>
 
                   <div>
-                    <span className="font-bold text-slate-500 uppercase tracking-wider block text-[10px]">Working Hours</span>
-                    <span className="font-semibold text-slate-800">{scheme.application_method?.working_hours || '9:30 AM - 5:30 PM (Mon-Sat)'}</span>
+                    <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block text-[10px]">
+                      {language === 'ta' ? 'வேலை நேரம்' : 'Working Hours'}
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{workingHours || '9:30 AM - 5:30 PM (Mon-Sat)'}</span>
                   </div>
                 </div>
 
@@ -433,32 +484,32 @@ export default function ResidentSchemeDetail({ params }: { params: Promise<{ id:
                     href={scheme.application_method.maps_location}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full py-2.5 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
+                    className="w-full py-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
                   >
-                    <MapPin className="w-4 h-4 text-emerald-600" /> View BDO Location on Google Maps
+                    <MapPin className="w-4 h-4 text-emerald-600" /> {language === 'ta' ? 'Google Maps-ல் அலுவலகத்தைக் காண்க' : 'View BDO Location on Google Maps'}
                   </a>
                 )}
               </div>
             )}
 
             {/* HELPLINE & SUPPORT CARD */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-3">
-              <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                <Phone className="w-4 h-4 text-indigo-600" /> Official BDO Help Desk
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-3">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Phone className="w-4 h-4 text-indigo-600" /> {language === 'ta' ? 'அதிகாரப்பூர்வ உதவி மையம்' : 'Official Help Desk'}
               </h3>
 
               <div className="space-y-2 text-xs">
                 {scheme.important_info?.helpline_number && (
-                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                    <span className="font-bold text-slate-600">Toll-Free Helpline</span>
-                    <span className="font-black text-indigo-600">{scheme.important_info.helpline_number}</span>
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between">
+                    <span className="font-bold text-slate-600 dark:text-slate-400">{language === 'ta' ? 'கட்டணமில்லா உதவி எண்' : 'Toll-Free Helpline'}</span>
+                    <span className="font-black text-indigo-600 dark:text-indigo-400">{scheme.important_info.helpline_number}</span>
                   </div>
                 )}
 
                 {scheme.important_info?.official_email && (
-                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                    <span className="font-bold text-slate-600">Email Support</span>
-                    <span className="font-bold text-slate-900 truncate max-w-[180px]">{scheme.important_info.official_email}</span>
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between">
+                    <span className="font-bold text-slate-600 dark:text-slate-400">{language === 'ta' ? 'மின்னஞ்சல் உதவி' : 'Email Support'}</span>
+                    <span className="font-bold text-slate-900 dark:text-white truncate max-w-[180px]">{scheme.important_info.official_email}</span>
                   </div>
                 )}
               </div>

@@ -10,6 +10,7 @@ import {
   LocateFixed, LocateOff
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLanguage } from '@/components/providers/language-provider'
 import NearbyOfficesMap, {
   type PlaceOffice,
   buildFallbackOffices
@@ -92,6 +93,7 @@ class MapErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
 }
 
 export default function NearbyOfficesPage() {
+  const { t, language } = useLanguage()
   // ── 1. SINGLE SOURCE OF TRUTH LOCATION STATE ──
   const [currentLocation, setCurrentLocation] = useState<{
     name: string
@@ -328,10 +330,10 @@ export default function NearbyOfficesPage() {
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Nearby Government Offices
+              {t('nearbyOfficesTitle')}
             </h1>
             <p className="text-xs sm:text-sm text-teal-100/80 max-w-2xl leading-relaxed">
-              Find Taluk Offices, Panchayat Union Offices, Sub-Registrar Offices, and Post Offices near you with exact GPS directions.
+              {t('nearbyOfficesSubtitle')}
             </p>
           </div>
 
@@ -345,7 +347,7 @@ export default function NearbyOfficesPage() {
               title="Detect GPS Location"
             >
               <Crosshair className={`w-4 h-4 text-[#0F766E] ${isLocating ? 'animate-spin' : ''}`} />
-              <span>{isLocating ? 'Detecting Location...' : 'Use My Current Location'}</span>
+              <span>{isLocating ? (language === 'en' ? 'Detecting Location...' : 'இருப்பிடம் கண்டறியப்படுகிறது...') : (language === 'en' ? 'Use My Current Location' : 'என் இருப்பிடத்தைப் பயன்படுத்து')}</span>
             </button>
 
             {/* Live Track Toggle Button */}
@@ -359,7 +361,7 @@ export default function NearbyOfficesPage() {
               title="Toggle Live Location Tracking"
             >
               {isTracking ? <LocateFixed className="w-4 h-4" /> : <LocateOff className="w-4 h-4 text-teal-200" />}
-              <span>{isTracking ? 'Tracking ON' : 'Track My Location'}</span>
+              <span>{isTracking ? (language === 'en' ? 'Tracking ON' : 'கண்காணிப்பு இயங்குகிறது') : (language === 'en' ? 'Track My Location' : 'இருப்பிடத்தைக் கண்காணிக்க')}</span>
             </button>
 
             {/* Radius Selector */}
@@ -386,7 +388,7 @@ export default function NearbyOfficesPage() {
           <div className="flex items-center gap-2 text-teal-100">
             <MapPin className="w-4 h-4 text-emerald-300 flex-shrink-0" />
             <span>
-              Active Search Area: <strong className="text-white font-bold">{currentLocation.name}</strong> (within {radiusMeters / 1000} km)
+              {language === 'en' ? 'Active Search Area:' : 'செயலில் உள்ள தேடல் பகுதி:'} <strong className="text-white font-bold">{currentLocation.name}</strong> (within {radiusMeters / 1000} km)
             </span>
           </div>
 
@@ -442,7 +444,7 @@ export default function NearbyOfficesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search VAO, Taluk Office, Panchayat, Post Office..."
+                placeholder={t('searchOfficesPlaceholder')}
                 className="w-full pl-10 pr-9 py-2.5 text-xs font-semibold rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0F766E]/20"
               />
               {searchQuery && (
@@ -457,7 +459,17 @@ export default function NearbyOfficesPage() {
 
             {/* Category Filter Chips */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {CATEGORY_FILTERS.map((cat) => (
+              {([
+    { id: 'All', label: language === 'en' ? 'All Offices' : 'அனைத்தும்' },
+    { id: 'Government Offices', label: language === 'en' ? 'Govt Offices' : 'அரசு அலுவலகங்கள்' },
+    { id: 'Panchayat', label: language === 'en' ? 'Panchayat' : 'ஊராட்சி' },
+    { id: 'VAO', label: language === 'en' ? 'VAO Office' : 'VAO அலுவலகம்' },
+    { id: 'Taluk Office', label: language === 'en' ? 'Taluk Office' : 'வட்டாட்சியர் அலுவலகம்' },
+    { id: 'Post Office', label: language === 'en' ? 'Post Office' : 'அஞ்சல் அலுவலகம்' },
+    { id: 'E-Sevai', label: language === 'en' ? 'E-Sevai' : 'இ-சேவை' },
+    { id: 'Hospital', label: language === 'en' ? 'Hospital' : 'மருத்துவமனை' },
+    { id: 'Police', label: language === 'en' ? 'Police' : 'காவல் நிலையம்' },
+  ] as const).map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
@@ -478,7 +490,7 @@ export default function NearbyOfficesPage() {
                 <span>Near {currentLocation.name}</span>
               </p>
               <span className="text-[11px] font-bold text-[#0F766E] dark:text-teal-400 bg-teal-50 dark:bg-teal-950/50 px-2.5 py-0.5 rounded-md border border-teal-200 dark:border-teal-900/50">
-                {`${filteredOffices.length} offices found`}
+                {language === 'en' ? `${filteredOffices.length} offices found` : `${filteredOffices.length} அலுவலகங்கள் கண்டறியப்பட்டன`}
               </span>
             </div>
           </div>
@@ -491,7 +503,7 @@ export default function NearbyOfficesPage() {
                 <Building2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
                 <div>
                   <h4 className="font-black text-slate-800 dark:text-slate-200 text-sm">
-                    No government offices found nearby
+                    {t('noOfficesNearby')}
                   </h4>
                   <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
                     {searchQuery
@@ -577,8 +589,8 @@ export default function NearbyOfficesPage() {
                             ? office.working_hours
                             : office.isOpenNow !== undefined
                             ? office.isOpenNow
-                              ? '🟢 Open Now (Govt Timings: 10:00 AM – 5:45 PM)'
-                              : '🔴 Closed Now'
+                              ? (language === 'en' ? '🟢 Open Now (Govt Timings: 10:00 AM – 5:45 PM)' : '🟢 தற்போது திறந்துள்ளது (அரசு நேரம்: காலை 10:00 – மாலை 5:45)')
+                              : (language === 'en' ? '🔴 Closed Now' : '🔴 தற்போது மூடப்பட்டுள்ளது')
                             : 'Information unavailable'}
                         </span>
                       </div>
@@ -601,7 +613,7 @@ export default function NearbyOfficesPage() {
                         className="flex-1 py-2 rounded-xl bg-[#0F766E] hover:bg-[#0D655E] text-white text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md cursor-pointer"
                       >
                         <Navigation2 className="w-3.5 h-3.5" />
-                        <span>Get Directions</span>
+                        <span>{language === 'en' ? 'Get Directions' : 'வழிகாட்டுதலைப் பெறுங்கள்'}</span>
                       </a>
                     </div>
                   </motion.div>

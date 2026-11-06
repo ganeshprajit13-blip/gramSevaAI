@@ -14,15 +14,15 @@ import { useLanguage } from '@/components/providers/language-provider'
 
 const navItems = [
   { href: '/admin/dashboard', translationKey: 'dashboard', icon: LayoutDashboard },
-  { href: '/admin/posters', translationKey: 'Government Posters' as any, icon: ImageIcon, label: 'Government Posters', isFeatured: true },
-  { href: '/admin/women-empowerment', translationKey: 'Women Empowerment' as any, icon: Heart, label: 'Women Empowerment & Demographics', isFeatured: true },
+  { href: '/admin/posters', translationKey: 'governmentPosters', icon: ImageIcon, isFeatured: true },
+  { href: '/admin/women-empowerment', translationKey: 'womenEmpowermentNav', icon: Heart, isFeatured: true },
   { href: '/admin/residents', translationKey: 'residents', icon: Users },
   { href: '/admin/schemes', translationKey: 'manageSchemes', icon: FileText },
   { href: '/admin/dashboard?tab=complaints', translationKey: 'complaints', icon: ShieldAlert },
   { href: '/admin/dashboard?tab=announcements', translationKey: 'villageAnnounce', icon: Bell },
   { href: '/admin/dashboard?tab=ai-config', translationKey: 'aiAssistant', icon: Bot },
-  { href: '/admin/dashboard?tab=audit-logs', translationKey: 'Audit Logs' as any, icon: History },
-  { href: '/admin/dashboard?tab=settings', translationKey: 'myProfile', icon: Settings },
+  { href: '/admin/dashboard?tab=audit-logs', translationKey: 'auditLogs', icon: History },
+  { href: '/admin/dashboard?tab=settings', translationKey: 'settings', icon: Settings },
 ] as const
 
 export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
@@ -123,7 +123,7 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
       {/* Section label */}
       {(!collapsed || isMobile) && (
         <p className="px-4 pt-5 pb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-[#166534]/60 dark:text-green-400/60 select-none">
-          Navigation
+          {t('navigation' as any, 'Navigation')}
         </p>
       )}
 
@@ -138,7 +138,7 @@ export default function AdminSidebar({ onLogout }: { onLogout: () => void }) {
             isActive = true
           }
           const isFeatured = (item as any).isFeatured
-          const labelText = (item as any).label || t(item.translationKey)
+          const labelText = t(item.translationKey as any) || (item as any).label
           const Icon = item.icon
           return (
             <Link

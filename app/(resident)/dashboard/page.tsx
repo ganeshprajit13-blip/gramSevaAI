@@ -13,10 +13,13 @@ import {
   Bot, Sparkles, Clock, Phone, ShieldAlert, Globe, Bell,
   Activity, ArrowRight, CheckCircle2, AlertCircle,
   Calendar, ShieldCheck, CheckSquare, PlusCircle, Sparkle,
-  Mic, MicOff, HelpCircle, Briefcase, Trophy
+  Mic, MicOff, HelpCircle, Briefcase, Trophy, X
 } from 'lucide-react'
 
 import { getStoredSchemes, type SchemeRecord } from '@/lib/scheme-store'
+import { searchSchemes } from '@/lib/scheme-search'
+import { useVoiceSearch } from '@/lib/use-voice-search'
+import { getTranslatedContent } from '@/utils/translations'
 import { getStoredServices, type ServiceRecord } from '@/lib/service-store'
 import { getStoredAnnouncements, type AnnouncementRecord } from '@/lib/announcement-store'
 import { getStoredComplaints, type ComplaintRecord } from '@/lib/complaint-store'
@@ -161,7 +164,12 @@ export default function ResidentDashboard() {
   const [activePersona, setActivePersona] = useState<UserPersona>('All')
   const [activeCategoryTab, setActiveCategoryTab] = useState<'Categories' | 'States/UTs' | 'Central Ministries'>('Categories')
   const [showAiPrompts, setShowAiPrompts] = useState(false)
-  const [isListening, setIsListening] = useState(false)
+  const { isListening, toggleListening: toggleVoiceSearch, stopListening } = useVoiceSearch({
+    language,
+    onResult: (transcript) => {
+      setSearchVal(transcript)
+    }
+  })
 
   // Load Real Stored Data & Listen for Live Updates
   const loadData = () => {
@@ -249,32 +257,6 @@ export default function ResidentDashboard() {
     }
   }, [profile])
 
-  // Voice Search Handler
-  const toggleVoiceSearch = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      setIsListening(true)
-      setTimeout(() => { setSearchVal('PM Kisan'); setIsListening(false) }, 2500)
-      return
-    }
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      const recognition = new SR()
-      recognition.lang = language === 'ta' ? 'ta-IN' : 'en-US'
-      recognition.start()
-      setIsListening(true)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (event: any) => {
-        setSearchVal(event.results[0][0].transcript)
-        setIsListening(false)
-      }
-      recognition.onerror = () => setIsListening(false)
-      recognition.onend = () => setIsListening(false)
-    } catch {
-      setIsListening(false)
-    }
-  }
-
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!searchVal.trim()) return
@@ -289,14 +271,9 @@ export default function ResidentDashboard() {
   const displayedSchemes = useMemo(() => {
     let list = [...schemes]
     if (searchVal.trim()) {
-      const q = searchVal.toLowerCase()
-      list = list.filter(s =>
-        s.title.toLowerCase().includes(q) ||
-        (s.name && s.name.toLowerCase().includes(q)) ||
-        s.description.toLowerCase().includes(q) ||
-        s.category.toLowerCase().includes(q)
-      )
+      list = searchSchemes(list, searchVal)
     }
+    
     if (activePersona !== 'All') {
       const categoryMap: Record<UserPersona, string[]> = {
         'All': [],
@@ -463,6 +440,16 @@ export default function ResidentDashboard() {
                   : 'border-teal-600/30 dark:border-teal-500/40 focus:border-[#0F766E] dark:focus:border-teal-400'
               }`}
             />
+            {searchVal && (
+              <button
+                type="button"
+                onClick={() => setSearchVal('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title={language === 'en' ? 'Clear search' : 'தேடலை அழி'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <button
             type="button"
@@ -532,7 +519,7 @@ export default function ResidentDashboard() {
       <div className="space-y-3">
         <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
           <Activity className="w-3.5 h-3.5 text-[#0F766E]" />
-          Quick Access Portal
+          {language === 'en' ? 'Quick Access Portal' : 'விரைவு அணுகல் தளம்'}
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
           {[
@@ -558,10 +545,10 @@ export default function ResidentDashboard() {
       {/* ── LIVE STORE STATISTICS (Strict Real Data) ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Registered Residents', value: residentsCount, suffix: '', icon: Users, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-t-blue-500' },
-          { label: 'Active Welfare Schemes', value: schemes.length, suffix: '', icon: FileText, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/40', border: 'border-t-orange-500' },
-          { label: 'Government Services', value: services.length, suffix: '', icon: Award, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-t-emerald-500' },
-          { label: 'Active Announcements', value: announcements.length, suffix: '', icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/40', border: 'border-t-purple-500' },
+          { label: language === 'en' ? 'Registered Residents' : 'பதிவுசெய்த குடியிருப்பாளர்கள்', value: residentsCount, suffix: '', icon: Users, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-t-blue-500' },
+          { label: language === 'en' ? 'Active Welfare Schemes' : 'செயலில் உள்ள நலத்திட்டங்கள்', value: schemes.length, suffix: '', icon: FileText, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/40', border: 'border-t-orange-500' },
+          { label: language === 'en' ? 'Government Services' : 'அரசு சேவைகள்', value: services.length, suffix: '', icon: Award, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-t-emerald-500' },
+          { label: language === 'en' ? 'Active Announcements' : 'செயலில் உள்ள அறிவிப்புகள்', value: announcements.length, suffix: '', icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/40', border: 'border-t-purple-500' },
         ].map((item, idx) => (
           <motion.div
             key={idx}
@@ -596,9 +583,7 @@ export default function ResidentDashboard() {
                   ? 'bg-[#0F766E] text-white shadow-md'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
-            >
-              Categories
-            </button>
+            >{language === 'en' ? 'Categories' : 'வகைப்பாடுகள்'}</button>
             <button
               onClick={() => setActiveCategoryTab('States/UTs')}
               className={`px-5 py-2 rounded-xl transition-all cursor-pointer ${
@@ -606,9 +591,7 @@ export default function ResidentDashboard() {
                   ? 'bg-[#0F766E] text-white shadow-md'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
-            >
-              States/UTs
-            </button>
+            >{language === 'en' ? 'States/UTs' : 'மாநிலங்கள்'}</button>
             <button
               onClick={() => setActiveCategoryTab('Central Ministries')}
               className={`px-5 py-2 rounded-xl transition-all cursor-pointer ${
@@ -616,9 +599,7 @@ export default function ResidentDashboard() {
                   ? 'bg-[#0F766E] text-white shadow-md'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
-            >
-              Central Ministries
-            </button>
+            >{language === 'en' ? 'Central Ministries' : 'மத்திய அமைச்சகங்கள்'}</button>
           </div>
         </div>
 
@@ -772,7 +753,7 @@ export default function ResidentDashboard() {
             <HelpCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
             <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No schemes found matching "{activePersona}" persona or search query.</p>
             <button onClick={() => { setActivePersona('All'); setSearchVal(''); }} className="mt-2 text-xs font-bold text-[#0F766E] hover:underline cursor-pointer">
-              Reset Filters
+              {language === 'en' ? 'Reset Filters' : 'வடிகட்டிகளை மீட்டமை'}
             </button>
           </div>
         ) : (
@@ -792,7 +773,7 @@ export default function ResidentDashboard() {
                   <div className="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                     <img
                       src={posterImage}
-                      alt={scheme.title || scheme.name}
+                      alt={getTranslatedContent(scheme, 'title', language) || getTranslatedContent(scheme, 'name', language) || scheme.title || scheme.name}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
@@ -800,17 +781,17 @@ export default function ResidentDashboard() {
                     {/* Top Badges */}
                     <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
                       <span className="bg-[#0F766E]/90 text-white backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-sm">
-                        {scheme.category}
+                        {getTranslatedContent(scheme, 'category', language) || scheme.category}
                       </span>
                       <span className="bg-slate-900/80 text-slate-200 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] font-bold">
-                        {scheme.type}
+                        {getTranslatedContent(scheme, 'type', language) || scheme.type}
                       </span>
                     </div>
 
                     {/* Title overlay on poster bottom */}
                     <div className="absolute bottom-3 left-3 right-3 z-10">
                       <h3 className="font-black text-base text-white line-clamp-1 leading-snug drop-shadow-sm">
-                        {scheme.title || scheme.name}
+                        {getTranslatedContent(scheme, 'title', language) || getTranslatedContent(scheme, 'name', language) || scheme.title || scheme.name}
                       </h3>
                     </div>
                   </div>
@@ -818,14 +799,14 @@ export default function ResidentDashboard() {
                   {/* Card Content Body */}
                   <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                     <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                      {scheme.description}
+                      {getTranslatedContent(scheme, 'description', language) || scheme.description}
                     </p>
 
                     {scheme.benefit_details && (
                       <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-xs">
-                        <span className="font-extrabold text-[#0F766E] dark:text-emerald-400">Benefit: </span>
+                        <span className="font-extrabold text-[#0F766E] dark:text-emerald-400">{language === 'en' ? 'Benefit: ' : 'பயன்: '}</span>
                         <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {scheme.benefit_details.amount} ({scheme.benefit_details.frequency || 'Per Benefit'})
+                          {language === 'ta' && scheme.benefit_details_ta ? `${scheme.benefit_details_ta.amount} (${scheme.benefit_details_ta.frequency || 'பயன்'})` : `${scheme.benefit_details?.amount || ''} (${scheme.benefit_details?.frequency || 'Per Benefit'})`}
                         </span>
                       </div>
                     )}
@@ -834,13 +815,13 @@ export default function ResidentDashboard() {
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
                       <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-amber-500" />
-                        {scheme.closing_date ? `Ends: ${scheme.closing_date}` : 'Ongoing'}
+                        {scheme.closing_date ? `${language === 'en' ? 'Ends: ' : 'முடிவு: '}${scheme.closing_date}` : (language === 'en' ? 'Ongoing' : 'தொடர்கிறது')}
                       </span>
                       <Link
                         href={`/schemes/${scheme.id}`}
                         className="px-3.5 py-2 bg-[#0F766E] hover:bg-[#0d645e] text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center gap-1"
                       >
-                        <span>Apply</span>
+                        <span>{language === 'en' ? 'Apply' : 'விண்ணப்பிக்க'}</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
@@ -925,7 +906,7 @@ export default function ResidentDashboard() {
                     onClick={() => handleApplyService(svc.name)}
                     className="w-full py-2 px-3 bg-[#0F766E] hover:bg-[#0d645e] text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1 cursor-pointer"
                   >
-                    Apply Now <ChevronRight className="w-3.5 h-3.5" />
+                    {language === 'en' ? 'Apply Now' : 'விண்ணப்பிக்க'} <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -954,7 +935,7 @@ export default function ResidentDashboard() {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
                 <Bell className="w-3 h-3" />
-                Official Notice Board
+                {language === 'en' ? 'Official Notice Board' : 'அதிகாரப்பூர்வ அறிவிப்புப் பலகை'}
               </span>
               <span className="flex items-center gap-1 text-[10px] font-bold text-red-500">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> LIVE
@@ -972,7 +953,7 @@ export default function ResidentDashboard() {
             className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             <Bell className="w-3.5 h-3.5" />
-            View All Notices
+            {language === 'en' ? 'View All Notices' : 'அனைத்து அறிவிப்புகளையும் பார்க்க'}
           </Link>
         </div>
 
@@ -1041,7 +1022,7 @@ export default function ResidentDashboard() {
                         href="/announcements"
                         className="text-[11px] font-black text-[#0F766E] hover:underline flex items-center gap-1"
                       >
-                        Read More <ChevronRight className="w-3.5 h-3.5" />
+                        {language === 'en' ? 'Read More' : 'மேலும் படிக்க'} <ChevronRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
                   </div>

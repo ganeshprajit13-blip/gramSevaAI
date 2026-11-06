@@ -17,6 +17,8 @@ import {
 import { getStoredAnnouncements, type AnnouncementRecord } from '@/lib/announcement-store'
 import { getLatestSchemes, type SchemeRecord } from '@/lib/scheme-store'
 import { getLatestServices, type ServiceRecord } from '@/lib/service-store'
+import { useVoiceSearch } from '@/lib/use-voice-search'
+import { getTranslatedContent } from '@/utils/translations'
 
 // ─── Quick Stats Data ─────────────────────────────────────────────────────────
 const STAT_CARDS = [
@@ -79,7 +81,12 @@ export default function HomePage() {
   const [isPaused, setIsPaused] = useState(false)
 
   // Voice & AI Suggestions
-  const [isListening, setIsListening] = useState(false)
+  const { isListening, toggleListening: toggleVoiceSearch, stopListening } = useVoiceSearch({
+    language,
+    onResult: (transcript) => {
+      setSearchVal(transcript)
+    }
+  })
   const [showAiPrompts, setShowAiPrompts] = useState(false)
   const [textSize, setTextSizeState] = useState<'sm' | 'md' | 'lg'>('md')
   const [profileOpen, setProfileOpen] = useState(false)
@@ -209,37 +216,11 @@ export default function HomePage() {
     return slice
   }, [carouselIndex, filteredAnnouncements, announcements])
 
-  // Voice Search Handler
-  const toggleVoiceSearch = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert('Voice recognition listening active...')
-      setIsListening(true)
-      setTimeout(() => {
-        setSearchVal('PM Kisan Subsidy')
-        setIsListening(false)
-      }, 2500)
-      return
-    }
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      const recognition = new SpeechRecognition()
-      recognition.lang = language === 'ta' ? 'ta-IN' : 'en-US'
-      recognition.start()
-      setIsListening(true)
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript
-        setSearchVal(transcript)
-        setIsListening(false)
-      }
-      recognition.onerror = () => setIsListening(false)
-      recognition.onend = () => setIsListening(false)
-    } catch {
-      setIsListening(false)
-    }
+  // Search Submit Handler
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchVal.trim()) return
+    router.push('/schemes?search=' + encodeURIComponent(searchVal.trim()))
   }
 
   // Filtered 4 Schemes for Search Override
@@ -410,38 +391,61 @@ export default function HomePage() {
       <div className="w-full bg-[#EAF8EF] dark:bg-slate-900/80 border-b border-teal-100 dark:border-teal-950 py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto space-y-2">
           
-          <div className="relative flex items-center">
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center">
             <Search className="absolute left-4 w-5 h-5 text-[#0F766E] dark:text-teal-400 pointer-events-none" />
             <input
               type="text"
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
-              placeholder="Search Government Schemes..."
-              className="w-full pl-12 pr-28 py-3.5 text-sm sm:text-base rounded-2xl bg-white dark:bg-slate-950 border-2 border-teal-600/30 dark:border-teal-500/40 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#0F766E] dark:focus:border-teal-400 shadow-md transition-all font-medium"
+              placeholder={isListening ? (language === 'en' ? 'Listening... speak now' : 'கேட்கிறேன்... பேசுங்கள்') : (language === 'en' ? 'Search Government Schemes...' : 'அரசு திட்டங்களை தேடுக...')}
+              className={`w-full pl-12 pr-36 py-3.5 text-sm sm:text-base rounded-2xl bg-white dark:bg-slate-950 border-2 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none shadow-md transition-all font-medium ${
+                isListening
+                  ? 'border-red-400 dark:border-red-500 placeholder:text-red-400 animate-pulse'
+                  : 'border-teal-600/30 dark:border-teal-500/40 focus:border-[#0F766E] dark:focus:border-teal-400'
+              }`}
             />
 
-            <div className="absolute right-3 flex items-center gap-2">
+            <div className="absolute right-3 flex items-center gap-1.5">
+              {searchVal && (
+                <button
+                  type="button"
+                  onClick={() => setSearchVal('')}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                  title={language === 'en' ? 'Clear search' : 'தேடலை அழி'}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
               <button
+                type="button"
                 onClick={toggleVoiceSearch}
                 className={`p-2 rounded-xl border transition-all cursor-pointer ${
                   isListening
-                    ? 'bg-red-500 text-white animate-pulse border-red-600'
+                    ? 'bg-red-500 text-white animate-pulse border-red-600 shadow-[0_0_12px_rgba(239,68,68,0.5)]'
                     : 'bg-teal-50 dark:bg-teal-950 text-[#0F766E] dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-100'
                 }`}
-                title="Voice Search"
+                title={language === 'en' ? 'Voice Search' : 'குரல் தேடல்'}
               >
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>
 
               <button
+                type="button"
                 onClick={() => setShowAiPrompts(!showAiPrompts)}
                 className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 transition-all cursor-pointer flex items-center gap-1"
-                title="AI Scheme Recommendations"
+                title={language === 'en' ? 'AI Scheme Recommendations' : 'AI பரிந்துரைகள்'}
               >
                 <Sparkles className="w-4 h-4 animate-pulse" />
               </button>
+
+              <button
+                type="submit"
+                className="px-4 py-2 bg-[#0F766E] hover:bg-[#0d645e] text-white rounded-xl font-bold text-xs shadow-sm transition-all cursor-pointer"
+              >
+                {language === 'en' ? 'Search' : 'தேடுக'}
+              </button>
             </div>
-          </div>
+          </form>
 
           <AnimatePresence>
             {showAiPrompts && (
@@ -453,7 +457,7 @@ export default function HomePage() {
               >
                 <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                   <span className="font-extrabold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                    <Bot className="w-4 h-4" /> GramSeva AI Quick Recommendations
+                    <Bot className="w-4 h-4" /> {language === 'en' ? 'GramSeva AI Quick Recommendations' : 'கிராமசேவா AI விரைவு பரிந்துரைகள்'}
                   </span>
                   <button onClick={() => setShowAiPrompts(false)} className="text-slate-400 hover:text-slate-600">✕</button>
                 </div>
@@ -750,13 +754,9 @@ export default function HomePage() {
                         </span>
                       </div>
 
-                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-white leading-snug line-clamp-1 group-hover:text-[#0F766E] transition-colors">
-                        {scheme.title || scheme.name}
-                      </h3>
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-white leading-snug line-clamp-1 group-hover:text-[#0F766E] transition-colors">{getTranslatedContent(scheme, 'title', language) || getTranslatedContent(scheme, 'name', language) || scheme.title || scheme.name}</h3>
 
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 font-medium">
-                        {scheme.description}
-                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 font-medium">{getTranslatedContent(scheme, 'description', language) || scheme.description}</p>
                     </div>
                   </div>
 
@@ -783,7 +783,7 @@ export default function HomePage() {
               onClick={() => router.push('/schemes')}
               className="px-6 py-3 bg-[#0F766E] hover:bg-[#0d645e] text-white rounded-2xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 cursor-pointer"
             >
-              <span>View All Government Schemes</span>
+              <span>{language === 'en' ? 'View All Government Schemes' : 'அனைத்து அரசு நலத்திட்டங்களை பார்க்க'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -862,12 +862,8 @@ export default function HomePage() {
                       <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
                         {svc.department}
                       </span>
-                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-white leading-snug line-clamp-1 group-hover:text-[#0F766E] transition-colors">
-                        {svc.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 font-medium">
-                        {svc.description}
-                      </p>
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-white leading-snug line-clamp-1 group-hover:text-[#0F766E] transition-colors">{getTranslatedContent(svc, 'name', language) || svc.name}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 font-medium">{getTranslatedContent(svc, 'description', language) || svc.description}</p>
                     </div>
                   </div>
 
@@ -1116,9 +1112,7 @@ export default function HomePage() {
                   <span className="px-3 py-1 rounded-md bg-[#16A34A] text-[10px] font-extrabold uppercase tracking-wider">
                     {selectedSchemeModal.category}
                   </span>
-                  <h3 className="text-xl font-black leading-tight text-white">
-                    {selectedSchemeModal.title || selectedSchemeModal.name}
-                  </h3>
+                  <h3 className="text-xl font-black leading-tight text-white">{getTranslatedContent(selectedSchemeModal, 'title', language) || getTranslatedContent(selectedSchemeModal, 'name', language) || selectedSchemeModal.title || selectedSchemeModal.name}</h3>
                 </div>
               </div>
 
@@ -1140,16 +1134,14 @@ export default function HomePage() {
 
                 <div className="space-y-1.5">
                   <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Scheme Overview</h4>
-                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                    {selectedSchemeModal.description}
-                  </p>
+                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{getTranslatedContent(selectedSchemeModal, 'description', language) || selectedSchemeModal.description}</p>
                 </div>
 
                 {selectedSchemeModal.benefits_list && selectedSchemeModal.benefits_list.length > 0 && (
                   <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900 text-[#0F766E] dark:text-teal-300 space-y-1">
-                    <span className="font-extrabold block uppercase text-[10px]">Key Benefits:</span>
+                    <span className="font-extrabold block uppercase text-[10px]">{language === 'en' ? 'Key Benefits:' : 'முக்கிய பயன்கள்:'}</span>
                     <ul className="list-disc list-inside space-y-0.5">
-                      {selectedSchemeModal.benefits_list.map((b, i) => (
+                      {((language === 'ta' && (selectedSchemeModal as any).benefits_list_ta) || selectedSchemeModal.benefits_list).map((b: string, i: number) => (
                         <li key={i} className="font-semibold">{b}</li>
                       ))}
                     </ul>
@@ -1207,23 +1199,19 @@ export default function HomePage() {
                   <span className="px-3 py-1 rounded-md bg-[#0F766E] text-[10px] font-extrabold uppercase tracking-wider">
                     {selectedServiceModal.status}
                   </span>
-                  <h3 className="text-xl font-black leading-tight text-white">
-                    {selectedServiceModal.name}
-                  </h3>
+                  <h3 className="text-xl font-black leading-tight text-white">{getTranslatedContent(selectedServiceModal, 'name', language) || selectedServiceModal.name}</h3>
                 </div>
               </div>
 
               <div className="p-6 space-y-4 text-xs">
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                   <span className="text-[10px] font-extrabold uppercase text-slate-400">Department</span>
-                  <span className="font-extrabold text-slate-900 dark:text-white">{selectedServiceModal.department}</span>
+                  <span className="font-extrabold text-slate-900 dark:text-white">{getTranslatedContent(selectedServiceModal, 'department', language) || selectedServiceModal.department}</span>
                 </div>
 
                 <div className="space-y-1.5">
                   <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Service Description</h4>
-                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                    {selectedServiceModal.description}
-                  </p>
+                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{getTranslatedContent(selectedServiceModal, 'description', language) || selectedServiceModal.description}</p>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
